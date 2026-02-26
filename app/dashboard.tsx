@@ -1,15 +1,11 @@
-import { useRouter } from "expo-router";
-import { signOut } from "firebase/auth";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
-import { auth } from "../config/firebase";
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, RefreshControl
+} from 'react-native';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'expo-router';
+import { auth } from '../config/firebase';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -21,79 +17,27 @@ export default function DashboardScreen() {
     temperature: 0,
   });
   const [chambres, setChambres] = useState([
-    {
-      id: "101",
-      presence: false,
-      temperature: 22,
-      humidite: 55,
-      fenetre: false,
-      clim: false,
-      lumiere: false,
-    },
-    {
-      id: "102",
-      presence: true,
-      temperature: 26,
-      humidite: 60,
-      fenetre: false,
-      clim: true,
-      lumiere: true,
-    },
-    {
-      id: "103",
-      presence: false,
-      temperature: 21,
-      humidite: 50,
-      fenetre: true,
-      clim: false,
-      lumiere: false,
-    },
-    {
-      id: "104",
-      presence: true,
-      temperature: 28,
-      humidite: 65,
-      fenetre: false,
-      clim: true,
-      lumiere: true,
-    },
-    {
-      id: "105",
-      presence: false,
-      temperature: 23,
-      humidite: 52,
-      fenetre: false,
-      clim: false,
-      lumiere: false,
-    },
-    {
-      id: "106",
-      presence: true,
-      temperature: 25,
-      humidite: 58,
-      fenetre: false,
-      clim: true,
-      lumiere: true,
-    },
+    { id: '101', presence: false, temperature: 22, humidite: 55, fenetre: false, clim: false, lumiere: false },
+    { id: '102', presence: true, temperature: 26, humidite: 60, fenetre: false, clim: true, lumiere: true },
+    { id: '103', presence: false, temperature: 21, humidite: 50, fenetre: true, clim: false, lumiere: false },
+    { id: '104', presence: true, temperature: 28, humidite: 65, fenetre: false, clim: true, lumiere: true },
+    { id: '105', presence: false, temperature: 23, humidite: 52, fenetre: false, clim: false, lumiere: false },
+    { id: '106', presence: true, temperature: 25, humidite: 58, fenetre: false, clim: true, lumiere: true },
   ]);
 
   const [zonesCommunes, setZonesCommunes] = useState([
-    { id: "lobby", nom: "Lobby", icone: "🏛️", occupee: true },
-    { id: "restaurant", nom: "Restaurant", icone: "🍽️", occupee: true },
-    { id: "spa", nom: "Spa", icone: "🧖", occupee: false },
-    { id: "gym", nom: "Gym", icone: "🏋️", occupee: false },
-    { id: "salle_reunion", nom: "Salle Réunion", icone: "💼", occupee: true },
-    { id: "piscine", nom: "Piscine", icone: "🏊", occupee: false },
+    { id: 'lobby', nom: 'Lobby', icone: '🏛️', occupee: true },
+    { id: 'restaurant', nom: 'Restaurant', icone: '🍽️', occupee: true },
+    { id: 'spa', nom: 'Spa', icone: '🧖', occupee: false },
+    { id: 'gym', nom: 'Gym', icone: '🏋️', occupee: false },
+    { id: 'salle_reunion', nom: 'Salle Réunion', icone: '💼', occupee: true },
+    { id: 'piscine', nom: 'Piscine', icone: '🏊', occupee: false },
   ]);
 
   useEffect(() => {
-    const occupees = chambres.filter((c) => c.presence).length;
-    const alertes = chambres.filter(
-      (c) => c.temperature > 27 || (c.fenetre && c.clim),
-    ).length;
-    const tempMoy = Math.round(
-      chambres.reduce((a, c) => a + c.temperature, 0) / chambres.length,
-    );
+    const occupees = chambres.filter(c => c.presence).length;
+    const alertes = chambres.filter(c => c.temperature > 27 || (c.fenetre && c.clim)).length;
+    const tempMoy = Math.round(chambres.reduce((a, c) => a + c.temperature, 0) / chambres.length);
     setStats({
       chambresOccupees: occupees,
       chambresLibres: chambres.length - occupees,
@@ -104,7 +48,7 @@ export default function DashboardScreen() {
 
   const handleLogout = async () => {
     await signOut(auth);
-    router.replace("/login");
+    router.replace('/login');
   };
 
   const onRefresh = () => {
@@ -117,27 +61,15 @@ export default function DashboardScreen() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#64B5F6"
-        />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#64B5F6" />}
     >
       {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerGreeting}>Bonjour 👋</Text>
-          <Text style={styles.headerName}>
-            {user?.displayName || "Manager"}
-          </Text>
+          <Text style={styles.headerName}>{user?.displayName || 'Manager'}</Text>
           <Text style={styles.headerDate}>
-            {new Date().toLocaleDateString("fr-FR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
+            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </Text>
         </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -147,25 +79,25 @@ export default function DashboardScreen() {
 
       {/* Stats Cards */}
       <View style={styles.statsGrid}>
-        <View style={[styles.statCard, { backgroundColor: "#1565C0" }]}>
+        <View style={[styles.statCard, { backgroundColor: '#1565C0' }]}>
           <Text style={styles.statIcon}>🛏️</Text>
           <Text style={styles.statNumber}>{stats.chambresOccupees}</Text>
           <Text style={styles.statLabel}>Occupées</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: "#2E7D32" }]}>
+        <View style={[styles.statCard, { backgroundColor: '#2E7D32' }]}>
           <Text style={styles.statIcon}>✅</Text>
           <Text style={styles.statNumber}>{stats.chambresLibres}</Text>
           <Text style={styles.statLabel}>Libres</Text>
         </View>
         <TouchableOpacity
-          style={[styles.statCard, { backgroundColor: "#E53935" }]}
-          onPress={() => router.push("/alerts")}
+          style={[styles.statCard, { backgroundColor: '#E53935' }]}
+          onPress={() => router.push('/alerts')}
         >
           <Text style={styles.statIcon}>⚠️</Text>
           <Text style={styles.statNumber}>{stats.alertes}</Text>
           <Text style={styles.statLabel}>Alertes</Text>
         </TouchableOpacity>
-        <View style={[styles.statCard, { backgroundColor: "#F57C00" }]}>
+        <View style={[styles.statCard, { backgroundColor: '#F57C00' }]}>
           <Text style={styles.statIcon}>🌡️</Text>
           <Text style={styles.statNumber}>{stats.temperature}°</Text>
           <Text style={styles.statLabel}>Temp Moy</Text>
@@ -178,24 +110,14 @@ export default function DashboardScreen() {
         {chambres.map((chambre) => (
           <TouchableOpacity
             key={chambre.id}
-            style={[
-              styles.chambreCard,
-              chambre.presence && styles.chambreOccupee,
-            ]}
+            style={[styles.chambreCard, chambre.presence && styles.chambreOccupee]}
             onPress={() => router.push(`/chambre/${chambre.id}`)}
           >
             <View style={styles.chambreHeader}>
               <Text style={styles.chambreNum}>#{chambre.id}</Text>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: chambre.presence ? "#E53935" : "#2E7D32" },
-                ]}
-              />
+              <View style={[styles.statusDot, { backgroundColor: chambre.presence ? '#E53935' : '#2E7D32' }]} />
             </View>
-            <Text style={styles.chambreStatus}>
-              {chambre.presence ? "👤 Occupée" : "🔓 Libre"}
-            </Text>
+            <Text style={styles.chambreStatus}>{chambre.presence ? '👤 Occupée' : '🔓 Libre'}</Text>
             <Text style={styles.chambreTemp}>🌡️ {chambre.temperature}°C</Text>
             <Text style={styles.chambreHum}>💧 {chambre.humidite}%</Text>
             <View style={styles.chambreIcons}>
@@ -212,6 +134,14 @@ export default function DashboardScreen() {
         ))}
       </View>
 
+      {/* Bouton Historique */}
+      <TouchableOpacity
+        style={styles.historyBtn}
+        onPress={() => router.push('/history')}
+      >
+        <Text style={styles.historyBtnText}>📊 Voir l'Historique & Statistiques</Text>
+      </TouchableOpacity>
+
       {/* Zones Communes */}
       <Text style={styles.sectionTitle}>🏨 Zones Communes</Text>
       <View style={styles.zonesGrid}>
@@ -222,13 +152,8 @@ export default function DashboardScreen() {
           >
             <Text style={styles.zoneIcon}>{zone.icone}</Text>
             <Text style={styles.zoneNom}>{zone.nom}</Text>
-            <Text
-              style={[
-                styles.zoneStatus,
-                { color: zone.occupee ? "#E53935" : "#2E7D32" },
-              ]}
-            >
-              {zone.occupee ? "Occupé" : "Libre"}
+            <Text style={[styles.zoneStatus, { color: zone.occupee ? '#E53935' : '#2E7D32' }]}>
+              {zone.occupee ? 'Occupé' : 'Libre'}
             </Text>
           </View>
         ))}
@@ -240,110 +165,76 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
+  container: { flex: 1, backgroundColor: '#0A1628' },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
   },
-  headerGreeting: { fontSize: 14, color: "#64B5F6" },
-  headerName: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 2 },
-  headerDate: { fontSize: 12, color: "#888", marginTop: 2 },
+  headerGreeting: { fontSize: 14, color: '#64B5F6' },
+  headerName: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginTop: 2 },
+  headerDate: { fontSize: 12, color: '#888', marginTop: 2 },
   logoutBtn: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: "#1E2D45",
-    justifyContent: "center",
-    alignItems: "center",
+    width: 45, height: 45, borderRadius: 23,
+    backgroundColor: '#1E2D45', justifyContent: 'center', alignItems: 'center',
   },
   logoutText: { fontSize: 20 },
   statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    gap: 10,
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 15, marginBottom: 10, gap: 10,
   },
   statCard: {
-    flex: 1,
-    minWidth: "45%",
-    borderRadius: 16,
-    padding: 15,
-    alignItems: "center",
+    flex: 1, minWidth: '45%', borderRadius: 16,
+    padding: 15, alignItems: 'center',
   },
   statIcon: { fontSize: 24, marginBottom: 5 },
-  statNumber: { fontSize: 28, fontWeight: "bold", color: "#fff" },
-  statLabel: { fontSize: 12, color: "rgba(255,255,255,0.8)", marginTop: 2 },
+  statNumber: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+  statLabel: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 12,
+    fontSize: 18, fontWeight: 'bold', color: '#fff',
+    paddingHorizontal: 20, marginTop: 20, marginBottom: 12,
   },
   chambresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 15,
-    gap: 10,
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 15, gap: 10,
   },
   chambreCard: {
-    width: "47%",
-    backgroundColor: "#1E2D45",
-    borderRadius: 16,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#2A3F5F",
+    width: '47%', backgroundColor: '#1E2D45',
+    borderRadius: 16, padding: 15, borderWidth: 1, borderColor: '#2A3F5F',
   },
-  chambreOccupee: { borderColor: "#E53935", borderWidth: 1.5 },
+  chambreOccupee: { borderColor: '#E53935', borderWidth: 1.5 },
   chambreHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 8,
   },
-  chambreNum: { fontSize: 16, fontWeight: "bold", color: "#fff" },
+  chambreNum: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  chambreStatus: { fontSize: 12, color: "#ccc", marginBottom: 4 },
-  chambreTemp: { fontSize: 12, color: "#64B5F6", marginBottom: 2 },
-  chambreHum: { fontSize: 12, color: "#64B5F6", marginBottom: 8 },
-  chambreIcons: { flexDirection: "row", gap: 8 },
+  chambreStatus: { fontSize: 12, color: '#ccc', marginBottom: 4 },
+  chambreTemp: { fontSize: 12, color: '#64B5F6', marginBottom: 2 },
+  chambreHum: { fontSize: 12, color: '#64B5F6', marginBottom: 8 },
+  chambreIcons: { flexDirection: 'row', gap: 8 },
   alertBadge: {
-    marginTop: 8,
-    backgroundColor: "#E53935",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    alignSelf: "flex-start",
+    marginTop: 8, backgroundColor: '#E53935',
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start',
   },
-  alertBadgeText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
+  alertBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  historyBtn: {
+    marginHorizontal: 15, marginTop: 20,
+    backgroundColor: '#1E2D45', borderRadius: 14,
+    padding: 16, alignItems: 'center',
+    borderWidth: 1, borderColor: '#2A3F5F',
+  },
+  historyBtnText: { color: '#64B5F6', fontSize: 16, fontWeight: 'bold' },
   zonesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 15,
-    gap: 10,
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 15, gap: 10,
   },
   zoneCard: {
-    width: "30%",
-    backgroundColor: "#1E2D45",
-    borderRadius: 14,
-    padding: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#2A3F5F",
+    width: '30%', backgroundColor: '#1E2D45',
+    borderRadius: 14, padding: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: '#2A3F5F',
   },
-  zoneOccupee: { borderColor: "#F57C00" },
+  zoneOccupee: { borderColor: '#F57C00' },
   zoneIcon: { fontSize: 28, marginBottom: 6 },
-  zoneNom: {
-    fontSize: 11,
-    color: "#ccc",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  zoneStatus: { fontSize: 11, fontWeight: "bold" },
+  zoneNom: { fontSize: 11, color: '#ccc', textAlign: 'center', marginBottom: 4 },
+  zoneStatus: { fontSize: 11, fontWeight: 'bold' },
 });
