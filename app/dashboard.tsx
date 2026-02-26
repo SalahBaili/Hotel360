@@ -157,11 +157,14 @@ export default function DashboardScreen() {
           <Text style={styles.statNumber}>{stats.chambresLibres}</Text>
           <Text style={styles.statLabel}>Libres</Text>
         </View>
-        <View style={[styles.statCard, { backgroundColor: "#E53935" }]}>
+        <TouchableOpacity
+          style={[styles.statCard, { backgroundColor: "#E53935" }]}
+          onPress={() => router.push("/alerts")}
+        >
           <Text style={styles.statIcon}>⚠️</Text>
           <Text style={styles.statNumber}>{stats.alertes}</Text>
           <Text style={styles.statLabel}>Alertes</Text>
-        </View>
+        </TouchableOpacity>
         <View style={[styles.statCard, { backgroundColor: "#F57C00" }]}>
           <Text style={styles.statIcon}>🌡️</Text>
           <Text style={styles.statNumber}>{stats.temperature}°</Text>

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Hotel360",
     "slug": "Hotel360",
+    "scheme": "hotel360",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
