@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDVPwphrwkrq0UJBeDJwVIIk-SNk26_Umw",
@@ -8,7 +8,7 @@ const firebaseConfig = {
   projectId: "examen-64eb4",
   storageBucket: "examen-64eb4.firebasestorage.app",
   messagingSenderId: "207786683978",
-  appId: "1:207786683978:web:8b3c756fa1e633e2d180b3"
+  appId: "1:207786683978:web:8b3c756fa1e633e2d180b3",
 };
 
 const app = initializeApp(firebaseConfig);
