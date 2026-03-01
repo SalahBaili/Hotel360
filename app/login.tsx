@@ -1,5 +1,8 @@
 import { useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -34,6 +37,25 @@ export default function LoginScreen() {
       Alert.alert("Erreur", "Email ou mot de passe incorrect");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert(
+        "Erreur",
+        'Entrez votre email d\'abord puis appuyez sur "Mot de passe oublié"',
+      );
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert(
+        "✅ Email envoyé !",
+        `Un email de réinitialisation a été envoyé à ${email}. Vérifiez votre boîte mail.`,
+      );
+    } catch (error) {
+      Alert.alert("Erreur", "Email introuvable dans notre système");
     }
   };
 
@@ -82,7 +104,10 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.forgotPassword}>
+        <TouchableOpacity
+          style={styles.forgotPassword}
+          onPress={handleForgotPassword}
+        >
           <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
         </TouchableOpacity>
 
