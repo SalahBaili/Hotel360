@@ -29,14 +29,7 @@ export default function DashboardScreen() {
     temperature: 0,
   });
   const [chambres, setChambres] = useState([]);
-  const [zonesCommunes] = useState([
-    { id: "lobby", nom: "Lobby", icone: "🏛️", occupee: true },
-    { id: "restaurant", nom: "Restaurant", icone: "🍽️", occupee: true },
-    { id: "spa", nom: "Spa", icone: "🧖", occupee: false },
-    { id: "gym", nom: "Gym", icone: "🏋️", occupee: false },
-    { id: "salle_reunion", nom: "Salle Réunion", icone: "💼", occupee: true },
-    { id: "piscine", nom: "Piscine", icone: "🏊", occupee: false },
-  ]);
+  const [zonesCommunes, setZonesCommunes] = useState([]);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
 
   useEffect(() => {
@@ -47,7 +40,6 @@ export default function DashboardScreen() {
   // 🔥 Génération automatique des alertes
   const genererAlerteAuto = async (chambre, type, niveau, message, icone) => {
     try {
-      // Vérifier si alerte déjà existante non résolue
       const q = query(
         collection(db, "alertes"),
         where("chambre", "==", chambre.id),
@@ -71,7 +63,6 @@ export default function DashboardScreen() {
           date: "Aujourd'hui",
           resolu: false,
         });
-        // Ajouter dans historique
         await addDoc(collection(db, "historique"), {
           type: "alerte",
           message: `Alerte auto: ${message}`,
@@ -85,7 +76,7 @@ export default function DashboardScreen() {
     }
   };
 
-  // 🔥 Connexion Firebase temps réel
+  // 🔥 Connexion Firebase temps réel - Chambres
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "chambres"), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
@@ -95,7 +86,6 @@ export default function DashboardScreen() {
       data.sort((a, b) => a.id.localeCompare(b.id));
       setChambres(data);
 
-      // Calculer stats
       const occupees = data.filter((c) => c.presence).length;
       const tempMoy =
         data.length > 0
@@ -104,7 +94,6 @@ export default function DashboardScreen() {
             )
           : 0;
 
-      // 🚨 Vérifier conditions et générer alertes automatiques
       data.forEach((chambre) => {
         if (chambre.temperature > 27) {
           genererAlerteAuto(
@@ -149,6 +138,19 @@ export default function DashboardScreen() {
     return unsubscribe;
   }, []);
 
+  // 🔥 Connexion Firebase temps réel - Zones
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "zones"), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      data.sort((a, b) => a.nom.localeCompare(b.nom));
+      setZonesCommunes(data);
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <ScrollView
       style={styles.container}
@@ -166,7 +168,10 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerGreeting}>Bonjour 👋</Text>
+          <Text style={styles.headerGreeting}>
+            {" "}
+            صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
+          </Text>
           <Text style={styles.headerName}>
             {currentUser?.displayName || "Manager"}
           </Text>
@@ -294,25 +299,37 @@ export default function DashboardScreen() {
 
       {/* Zones Communes */}
       <Text style={styles.sectionTitle}>🏨 Zones Communes</Text>
-      <View style={styles.zonesGrid}>
-        {zonesCommunes.map((zone) => (
-          <View
-            key={zone.id}
-            style={[styles.zoneCard, zone.occupee && styles.zoneOccupee]}
-          >
-            <Text style={styles.zoneIcon}>{zone.icone}</Text>
-            <Text style={styles.zoneNom}>{zone.nom}</Text>
-            <Text
-              style={[
-                styles.zoneStatus,
-                { color: zone.occupee ? "#E53935" : "#2E7D32" },
-              ]}
+      {zonesCommunes.length === 0 ? (
+        <View style={styles.loadingCard}>
+          <Text style={styles.loadingText}>⏳ Chargement des zones...</Text>
+        </View>
+      ) : (
+        <View style={styles.zonesGrid}>
+          {zonesCommunes.map((zone) => (
+            <View
+              key={zone.id}
+              style={[styles.zoneCard, zone.occupee && styles.zoneOccupee]}
             >
-              {zone.occupee ? "Occupé" : "Libre"}
-            </Text>
-          </View>
-        ))}
-      </View>
+              <Text style={styles.zoneIcon}>{zone.icone}</Text>
+              <Text style={styles.zoneNom}>{zone.nom}</Text>
+              <Text
+                style={[
+                  styles.zoneStatus,
+                  { color: zone.occupee ? "#E53935" : "#2E7D32" },
+                ]}
+              >
+                {zone.occupee ? "🔴 Occupé" : "🟢 Libre"}
+              </Text>
+              {zone.occupee && (
+                <Text style={styles.zonePersonnes}>
+                  👥 {zone.personnes} pers.
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={{ height: 30 }} />
     </ScrollView>
   );
@@ -453,4 +470,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   zoneStatus: { fontSize: 11, fontWeight: "bold" },
+  zonePersonnes: {
+    fontSize: 10,
+    color: "#F57C00",
+    fontWeight: "bold",
+    marginTop: 2,
+  },
 });
