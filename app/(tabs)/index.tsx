@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
-import { signOut } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
+  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -101,7 +101,12 @@ export default function DashboardScreen() {
     });
   }, [chambres]);
 
-  const user = auth.currentUser;
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => setCurrentUser(user));
+    return unsubscribe;
+  }, []);
 
   return (
     <ScrollView
@@ -117,11 +122,14 @@ export default function DashboardScreen() {
         />
       }
     >
+      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerGreeting}>Bonjour 👋</Text>
+          <Text style={styles.headerGreeting}>
+            صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
+          </Text>
           <Text style={styles.headerName}>
-            {user?.displayName || "Manager"}
+            {currentUser?.displayName || "Manager"}
           </Text>
           <Text style={styles.headerDate}>
             {new Date().toLocaleDateString("fr-FR", {
@@ -131,17 +139,23 @@ export default function DashboardScreen() {
             })}
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={async () => {
-            await signOut(auth);
-            router.replace("/login");
-          }}
-        >
-          <Text style={styles.logoutText}>🚪</Text>
+        <TouchableOpacity onPress={() => router.push("/profile")}>
+          {currentUser?.photoURL ? (
+            <Image
+              source={{ uri: currentUser.photoURL }}
+              style={styles.avatarImg}
+            />
+          ) : (
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarLetter}>
+                {currentUser?.displayName?.charAt(0).toUpperCase() || "?"}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
+      {/* Stats Cards */}
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: "#1565C0" }]}>
           <Text style={styles.statIcon}>🛏️</Text>
@@ -168,6 +182,7 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      {/* Chambres */}
       <Text style={styles.sectionTitle}>🛏️ État des Chambres</Text>
       <View style={styles.chambresGrid}>
         {chambres.map((chambre) => (
@@ -206,6 +221,7 @@ export default function DashboardScreen() {
         ))}
       </View>
 
+      {/* Bouton Historique */}
       <TouchableOpacity
         style={styles.historyBtn}
         onPress={() => router.push("/(tabs)/history")}
@@ -215,6 +231,7 @@ export default function DashboardScreen() {
         </Text>
       </TouchableOpacity>
 
+      {/* Zones Communes */}
       <Text style={styles.sectionTitle}>🏨 Zones Communes</Text>
       <View style={styles.zonesGrid}>
         {zonesCommunes.map((zone) => (
@@ -253,15 +270,24 @@ const styles = StyleSheet.create({
   headerGreeting: { fontSize: 14, color: "#64B5F6" },
   headerName: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 2 },
   headerDate: { fontSize: 12, color: "#888", marginTop: 2 },
-  logoutBtn: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: "#1E2D45",
+  avatarImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "#64B5F6",
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#1565C0",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#64B5F6",
   },
-  logoutText: { fontSize: 20 },
+  avatarLetter: { fontSize: 20, fontWeight: "bold", color: "#fff" },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
