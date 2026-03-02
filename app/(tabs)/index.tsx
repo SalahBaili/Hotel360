@@ -1,5 +1,12 @@
 import { useRouter } from "expo-router";
-import { collection, onSnapshot } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -37,6 +44,47 @@ export default function DashboardScreen() {
     return unsubscribe;
   }, []);
 
+  // 🔥 Génération automatique des alertes
+  const genererAlerteAuto = async (chambre, type, niveau, message, icone) => {
+    try {
+      // Vérifier si alerte déjà existante non résolue
+      const q = query(
+        collection(db, "alertes"),
+        where("chambre", "==", chambre.id),
+        where("type", "==", type),
+        where("resolu", "==", false),
+      );
+      const existing = await getDocs(q);
+      if (existing.empty) {
+        const now = new Date();
+        const heure = now.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        await addDoc(collection(db, "alertes"), {
+          chambre: chambre.id,
+          message,
+          niveau,
+          type,
+          icone,
+          heure,
+          date: "Aujourd'hui",
+          resolu: false,
+        });
+        // Ajouter dans historique
+        await addDoc(collection(db, "historique"), {
+          type: "alerte",
+          message: `Alerte auto: ${message}`,
+          heure,
+          date: "Aujourd'hui",
+          icone,
+        });
+      }
+    } catch (error) {
+      console.log("Erreur alerte auto:", error);
+    }
+  };
+
   // 🔥 Connexion Firebase temps réel
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "chambres"), (snapshot) => {
@@ -44,25 +92,57 @@ export default function DashboardScreen() {
         id: doc.id,
         ...doc.data(),
       }));
-      // Trier par ID
       data.sort((a, b) => a.id.localeCompare(b.id));
       setChambres(data);
 
       // Calculer stats
       const occupees = data.filter((c) => c.presence).length;
-      const alertes = data.filter(
-        (c) => c.temperature > 27 || (c.fenetre && c.clim),
-      ).length;
       const tempMoy =
         data.length > 0
           ? Math.round(
               data.reduce((a, c) => a + c.temperature, 0) / data.length,
             )
           : 0;
+
+      // 🚨 Vérifier conditions et générer alertes automatiques
+      data.forEach((chambre) => {
+        if (chambre.temperature > 27) {
+          genererAlerteAuto(
+            chambre,
+            "temperature",
+            "urgent",
+            `Température élevée chambre ${chambre.id}: ${chambre.temperature}°C`,
+            "🌡️",
+          );
+        }
+        if (chambre.fenetre && chambre.clim) {
+          genererAlerteAuto(
+            chambre,
+            "fenetre",
+            "warning",
+            `Fenêtre ouverte avec clim active chambre ${chambre.id}`,
+            "🪟",
+          );
+        }
+        if (chambre.humidite > 75) {
+          genererAlerteAuto(
+            chambre,
+            "humidite",
+            "warning",
+            `Humidité élevée chambre ${chambre.id}: ${chambre.humidite}%`,
+            "💧",
+          );
+        }
+      });
+
+      const alertesCount = data.filter(
+        (c) => c.temperature > 27 || (c.fenetre && c.clim) || c.humidite > 75,
+      ).length;
+
       setStats({
         chambresOccupees: occupees,
         chambresLibres: data.length - occupees,
-        alertes,
+        alertes: alertesCount,
         temperature: tempMoy,
       });
     });
@@ -86,10 +166,7 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerGreeting}>
-            {" "}
-            صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
-          </Text>
+          <Text style={styles.headerGreeting}>Bonjour 👋</Text>
           <Text style={styles.headerName}>
             {currentUser?.displayName || "Manager"}
           </Text>
@@ -184,6 +261,20 @@ export default function DashboardScreen() {
               {chambre.temperature > 27 && (
                 <View style={styles.alertBadge}>
                   <Text style={styles.alertBadgeText}>⚠️ Chaud</Text>
+                </View>
+              )}
+              {chambre.fenetre && chambre.clim && (
+                <View
+                  style={[styles.alertBadge, { backgroundColor: "#F57C00" }]}
+                >
+                  <Text style={styles.alertBadgeText}>🪟 Fenêtre!</Text>
+                </View>
+              )}
+              {chambre.humidite > 75 && (
+                <View
+                  style={[styles.alertBadge, { backgroundColor: "#1565C0" }]}
+                >
+                  <Text style={styles.alertBadgeText}>💧 Humide!</Text>
                 </View>
               )}
             </View>
@@ -319,7 +410,7 @@ const styles = StyleSheet.create({
   chambreHum: { fontSize: 12, color: "#64B5F6", marginBottom: 8 },
   chambreIcons: { flexDirection: "row", gap: 8 },
   alertBadge: {
-    marginTop: 8,
+    marginTop: 4,
     backgroundColor: "#E53935",
     borderRadius: 8,
     paddingHorizontal: 8,
