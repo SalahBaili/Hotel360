@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { collection, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -9,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../../config/firebase";
+import { auth, db } from "../../config/firebase";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -20,62 +21,7 @@ export default function DashboardScreen() {
     alertes: 0,
     temperature: 0,
   });
-  const [chambres] = useState([
-    {
-      id: "101",
-      presence: false,
-      temperature: 22,
-      humidite: 55,
-      fenetre: false,
-      clim: false,
-      lumiere: false,
-    },
-    {
-      id: "102",
-      presence: true,
-      temperature: 26,
-      humidite: 60,
-      fenetre: false,
-      clim: true,
-      lumiere: true,
-    },
-    {
-      id: "103",
-      presence: false,
-      temperature: 21,
-      humidite: 50,
-      fenetre: true,
-      clim: false,
-      lumiere: false,
-    },
-    {
-      id: "104",
-      presence: true,
-      temperature: 28,
-      humidite: 65,
-      fenetre: false,
-      clim: true,
-      lumiere: true,
-    },
-    {
-      id: "105",
-      presence: false,
-      temperature: 23,
-      humidite: 52,
-      fenetre: false,
-      clim: false,
-      lumiere: false,
-    },
-    {
-      id: "106",
-      presence: true,
-      temperature: 25,
-      humidite: 58,
-      fenetre: false,
-      clim: true,
-      lumiere: true,
-    },
-  ]);
+  const [chambres, setChambres] = useState([]);
   const [zonesCommunes] = useState([
     { id: "lobby", nom: "Lobby", icone: "🏛️", occupee: true },
     { id: "restaurant", nom: "Restaurant", icone: "🍽️", occupee: true },
@@ -84,27 +30,42 @@ export default function DashboardScreen() {
     { id: "salle_reunion", nom: "Salle Réunion", icone: "💼", occupee: true },
     { id: "piscine", nom: "Piscine", icone: "🏊", occupee: false },
   ]);
-
-  useEffect(() => {
-    const occupees = chambres.filter((c) => c.presence).length;
-    const alertes = chambres.filter(
-      (c) => c.temperature > 27 || (c.fenetre && c.clim),
-    ).length;
-    const tempMoy = Math.round(
-      chambres.reduce((a, c) => a + c.temperature, 0) / chambres.length,
-    );
-    setStats({
-      chambresOccupees: occupees,
-      chambresLibres: chambres.length - occupees,
-      alertes,
-      temperature: tempMoy,
-    });
-  }, [chambres]);
-
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => setCurrentUser(user));
+    return unsubscribe;
+  }, []);
+
+  // 🔥 Connexion Firebase temps réel
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "chambres"), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      // Trier par ID
+      data.sort((a, b) => a.id.localeCompare(b.id));
+      setChambres(data);
+
+      // Calculer stats
+      const occupees = data.filter((c) => c.presence).length;
+      const alertes = data.filter(
+        (c) => c.temperature > 27 || (c.fenetre && c.clim),
+      ).length;
+      const tempMoy =
+        data.length > 0
+          ? Math.round(
+              data.reduce((a, c) => a + c.temperature, 0) / data.length,
+            )
+          : 0;
+      setStats({
+        chambresOccupees: occupees,
+        chambresLibres: data.length - occupees,
+        alertes,
+        temperature: tempMoy,
+      });
+    });
     return unsubscribe;
   }, []);
 
@@ -126,6 +87,7 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerGreeting}>
+            {" "}
             صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
           </Text>
           <Text style={styles.headerName}>
@@ -184,42 +146,50 @@ export default function DashboardScreen() {
 
       {/* Chambres */}
       <Text style={styles.sectionTitle}>🛏️ État des Chambres</Text>
-      <View style={styles.chambresGrid}>
-        {chambres.map((chambre) => (
-          <View
-            key={chambre.id}
-            style={[
-              styles.chambreCard,
-              chambre.presence && styles.chambreOccupee,
-            ]}
-          >
-            <View style={styles.chambreHeader}>
-              <Text style={styles.chambreNum}>#{chambre.id}</Text>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: chambre.presence ? "#E53935" : "#2E7D32" },
-                ]}
-              />
-            </View>
-            <Text style={styles.chambreStatus}>
-              {chambre.presence ? "👤 Occupée" : "🔓 Libre"}
-            </Text>
-            <Text style={styles.chambreTemp}>🌡️ {chambre.temperature}°C</Text>
-            <Text style={styles.chambreHum}>💧 {chambre.humidite}%</Text>
-            <View style={styles.chambreIcons}>
-              <Text style={{ opacity: chambre.lumiere ? 1 : 0.3 }}>💡</Text>
-              <Text style={{ opacity: chambre.clim ? 1 : 0.3 }}>❄️</Text>
-              <Text style={{ opacity: chambre.fenetre ? 1 : 0.3 }}>🪟</Text>
-            </View>
-            {chambre.temperature > 27 && (
-              <View style={styles.alertBadge}>
-                <Text style={styles.alertBadgeText}>⚠️ Chaud</Text>
+      {chambres.length === 0 ? (
+        <View style={styles.loadingCard}>
+          <Text style={styles.loadingText}>⏳ Chargement des chambres...</Text>
+        </View>
+      ) : (
+        <View style={styles.chambresGrid}>
+          {chambres.map((chambre) => (
+            <View
+              key={chambre.id}
+              style={[
+                styles.chambreCard,
+                chambre.presence && styles.chambreOccupee,
+              ]}
+            >
+              <View style={styles.chambreHeader}>
+                <Text style={styles.chambreNum}>#{chambre.id}</Text>
+                <View
+                  style={[
+                    styles.statusDot,
+                    {
+                      backgroundColor: chambre.presence ? "#E53935" : "#2E7D32",
+                    },
+                  ]}
+                />
               </View>
-            )}
-          </View>
-        ))}
-      </View>
+              <Text style={styles.chambreStatus}>
+                {chambre.presence ? "👤 Occupée" : "🔓 Libre"}
+              </Text>
+              <Text style={styles.chambreTemp}>🌡️ {chambre.temperature}°C</Text>
+              <Text style={styles.chambreHum}>💧 {chambre.humidite}%</Text>
+              <View style={styles.chambreIcons}>
+                <Text style={{ opacity: chambre.lumiere ? 1 : 0.3 }}>💡</Text>
+                <Text style={{ opacity: chambre.clim ? 1 : 0.3 }}>❄️</Text>
+                <Text style={{ opacity: chambre.fenetre ? 1 : 0.3 }}>🪟</Text>
+              </View>
+              {chambre.temperature > 27 && (
+                <View style={styles.alertBadge}>
+                  <Text style={styles.alertBadgeText}>⚠️ Chaud</Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Bouton Historique */}
       <TouchableOpacity
@@ -313,6 +283,14 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 12,
   },
+  loadingCard: {
+    marginHorizontal: 15,
+    backgroundColor: "#1E2D45",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+  },
+  loadingText: { color: "#64B5F6", fontSize: 14 },
   chambresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
