@@ -1,4 +1,11 @@
-import React, { useState } from "react";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  updateDoc
+} from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -7,109 +14,47 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const alertesData = [
-  {
-    id: "1",
-    type: "temperature",
-    niveau: "urgent",
-    chambre: "104",
-    message: "Température trop élevée : 28°C",
-    heure: "22:05",
-    icone: "🌡️",
-  },
-  {
-    id: "2",
-    type: "fenetre",
-    niveau: "warning",
-    chambre: "103",
-    message: "Fenêtre ouverte avec climatisation active",
-    heure: "21:48",
-    icone: "🪟",
-  },
-  {
-    id: "3",
-    type: "presence",
-    niveau: "info",
-    chambre: "102",
-    message: "Présence détectée — lumière allumée automatiquement",
-    heure: "21:30",
-    icone: "👤",
-  },
-  {
-    id: "4",
-    type: "consommation",
-    niveau: "warning",
-    chambre: "106",
-    message: "Consommation électrique anormale détectée",
-    heure: "21:10",
-    icone: "⚡",
-  },
-  {
-    id: "5",
-    type: "temperature",
-    niveau: "urgent",
-    chambre: "201",
-    message: "Température trop élevée : 31°C",
-    heure: "20:55",
-    icone: "🌡️",
-  },
-  {
-    id: "6",
-    type: "presence",
-    niveau: "info",
-    chambre: "205",
-    message: "Chambre vide depuis 3h — clim éteinte automatiquement",
-    heure: "20:30",
-    icone: "❄️",
-  },
-  {
-    id: "7",
-    type: "humidite",
-    niveau: "warning",
-    chambre: "301",
-    message: "Humidité anormale détectée : 85%",
-    heure: "19:45",
-    icone: "💧",
-  },
-  {
-    id: "8",
-    type: "presence",
-    niveau: "info",
-    chambre: "Lobby",
-    message: "Lobby vide — éclairage réduit automatiquement",
-    heure: "19:20",
-    icone: "🏛️",
-  },
-];
+import { db } from "../../config/firebase";
 
 export default function AlertsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filtre, setFiltre] = useState("tous");
+  const [alertes, setAlertes] = useState([]);
+
+  // 🔥 Connexion Firebase temps réel
+  useEffect(() => {
+    const q = query(collection(db, "alertes"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAlertes(data);
+    });
+    return unsubscribe;
+  }, []);
 
   const filtres = [
-    { id: "tous", label: "Tous", count: alertesData.length },
+    { id: "tous", label: "Tous", count: alertes.length },
     {
       id: "urgent",
       label: "🔴 Urgent",
-      count: alertesData.filter((a) => a.niveau === "urgent").length,
+      count: alertes.filter((a) => a.niveau === "urgent").length,
     },
     {
       id: "warning",
       label: "🟠 Warning",
-      count: alertesData.filter((a) => a.niveau === "warning").length,
+      count: alertes.filter((a) => a.niveau === "warning").length,
     },
     {
       id: "info",
       label: "🔵 Info",
-      count: alertesData.filter((a) => a.niveau === "info").length,
+      count: alertes.filter((a) => a.niveau === "info").length,
     },
   ];
 
   const alertesFiltrees =
-    filtre === "tous"
-      ? alertesData
-      : alertesData.filter((a) => a.niveau === filtre);
+    filtre === "tous" ? alertes : alertes.filter((a) => a.niveau === filtre);
 
   const getNiveauStyle = (niveau) => {
     switch (niveau) {
@@ -121,6 +66,14 @@ export default function AlertsScreen() {
         return { bg: "#0D1E2C", border: "#1565C0", badge: "#1565C0" };
       default:
         return { bg: "#1E2D45", border: "#2A3F5F", badge: "#888" };
+    }
+  };
+
+  const handleResoudre = async (id) => {
+    try {
+      await updateDoc(doc(db, "alertes", id), { resolu: true });
+    } catch (error) {
+      console.log("Erreur:", error);
     }
   };
 
@@ -138,36 +91,40 @@ export default function AlertsScreen() {
         />
       }
     >
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🚨 Alertes</Text>
         <View style={styles.alertBadge}>
           <Text style={styles.alertBadgeText}>
-            {alertesData.filter((a) => a.niveau === "urgent").length} urgent
+            {alertes.filter((a) => a.niveau === "urgent" && !a.resolu).length}{" "}
+            urgent
           </Text>
         </View>
       </View>
 
+      {/* Résumé */}
       <View style={styles.resumeGrid}>
         <View style={[styles.resumeCard, { backgroundColor: "#E53935" }]}>
           <Text style={styles.resumeNumber}>
-            {alertesData.filter((a) => a.niveau === "urgent").length}
+            {alertes.filter((a) => a.niveau === "urgent").length}
           </Text>
           <Text style={styles.resumeLabel}>Urgent</Text>
         </View>
         <View style={[styles.resumeCard, { backgroundColor: "#F57C00" }]}>
           <Text style={styles.resumeNumber}>
-            {alertesData.filter((a) => a.niveau === "warning").length}
+            {alertes.filter((a) => a.niveau === "warning").length}
           </Text>
           <Text style={styles.resumeLabel}>Warning</Text>
         </View>
         <View style={[styles.resumeCard, { backgroundColor: "#1565C0" }]}>
           <Text style={styles.resumeNumber}>
-            {alertesData.filter((a) => a.niveau === "info").length}
+            {alertes.filter((a) => a.niveau === "info").length}
           </Text>
           <Text style={styles.resumeLabel}>Info</Text>
         </View>
       </View>
 
+      {/* Filtres */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -194,40 +151,61 @@ export default function AlertsScreen() {
         ))}
       </ScrollView>
 
+      {/* Liste alertes */}
       <View style={styles.alertesList}>
-        {alertesFiltrees.map((alerte) => {
-          const style = getNiveauStyle(alerte.niveau);
-          return (
-            <View
-              key={alerte.id}
-              style={[
-                styles.alerteCard,
-                { backgroundColor: style.bg, borderColor: style.border },
-              ]}
-            >
-              <Text style={styles.alerteIcone}>{alerte.icone}</Text>
-              <View style={styles.alerteCenter}>
-                <View style={styles.alerteHeaderRow}>
-                  <Text style={styles.alerteChambre}>
-                    Chambre {alerte.chambre}
-                  </Text>
-                  <View
-                    style={[
-                      styles.niveauBadge,
-                      { backgroundColor: style.badge },
-                    ]}
-                  >
-                    <Text style={styles.niveauText}>
-                      {alerte.niveau.toUpperCase()}
+        {alertesFiltrees.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>✅ Aucune alerte</Text>
+          </View>
+        ) : (
+          alertesFiltrees.map((alerte) => {
+            const style = getNiveauStyle(alerte.niveau);
+            return (
+              <View
+                key={alerte.id}
+                style={[
+                  styles.alerteCard,
+                  { backgroundColor: style.bg, borderColor: style.border },
+                  alerte.resolu && styles.alerteResolue,
+                ]}
+              >
+                <Text style={styles.alerteIcone}>{alerte.icone}</Text>
+                <View style={styles.alerteCenter}>
+                  <View style={styles.alerteHeaderRow}>
+                    <Text style={styles.alerteChambre}>
+                      Chambre {alerte.chambre}
                     </Text>
+                    <View
+                      style={[
+                        styles.niveauBadge,
+                        { backgroundColor: style.badge },
+                      ]}
+                    >
+                      <Text style={styles.niveauText}>
+                        {alerte.niveau?.toUpperCase()}
+                      </Text>
+                    </View>
                   </View>
+                  <Text style={styles.alerteMessage}>{alerte.message}</Text>
+                  <Text style={styles.alerteHeure}>🕐 {alerte.heure}</Text>
+                  {!alerte.resolu && (
+                    <TouchableOpacity
+                      style={styles.resoudreBtn}
+                      onPress={() => handleResoudre(alerte.id)}
+                    >
+                      <Text style={styles.resoudreBtnText}>
+                        ✅ Marquer résolu
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {alerte.resolu && (
+                    <Text style={styles.resoluText}>✅ Résolu</Text>
+                  )}
                 </View>
-                <Text style={styles.alerteMessage}>{alerte.message}</Text>
-                <Text style={styles.alerteHeure}>🕐 {alerte.heure}</Text>
               </View>
-            </View>
-          );
-        })}
+            );
+          })
+        )}
       </View>
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -275,6 +253,13 @@ const styles = StyleSheet.create({
   filtreText: { color: "#888", fontSize: 13 },
   filtreTextActive: { color: "#fff", fontWeight: "bold" },
   alertesList: { paddingHorizontal: 15, gap: 10 },
+  emptyCard: {
+    backgroundColor: "#1E2D45",
+    borderRadius: 16,
+    padding: 30,
+    alignItems: "center",
+  },
+  emptyText: { color: "#64B5F6", fontSize: 16 },
   alerteCard: {
     flexDirection: "row",
     borderRadius: 16,
@@ -282,7 +267,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: "flex-start",
     gap: 12,
+    marginBottom: 10,
   },
+  alerteResolue: { opacity: 0.5 },
   alerteIcone: { fontSize: 28, paddingTop: 2 },
   alerteCenter: { flex: 1 },
   alerteHeaderRow: {
@@ -300,5 +287,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     lineHeight: 18,
   },
-  alerteHeure: { fontSize: 11, color: "#888" },
+  alerteHeure: { fontSize: 11, color: "#888", marginBottom: 8 },
+  resoudreBtn: {
+    backgroundColor: "#2E7D32",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: "flex-start",
+  },
+  resoudreBtnText: { color: "#fff", fontSize: 12, fontWeight: "bold" },
+  resoluText: { color: "#2E7D32", fontSize: 12, fontWeight: "bold" },
 });
