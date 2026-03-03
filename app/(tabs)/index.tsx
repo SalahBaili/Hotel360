@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   addDoc,
   collection,
@@ -7,7 +8,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Image,
   RefreshControl,
@@ -31,13 +32,31 @@ export default function DashboardScreen() {
   const [chambres, setChambres] = useState([]);
   const [zonesCommunes, setZonesCommunes] = useState([]);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
+  const [seuilTemp, setSeuilTemp] = useState(27);
+  const [seuilHumidite, setSeuilHumidite] = useState(75);
+
+  // 🔥 Recharger les seuils à chaque fois que la page devient active
+  useFocusEffect(
+    useCallback(() => {
+      const loadSeuils = async () => {
+        try {
+          const saved = await AsyncStorage.getItem("hotel360_settings");
+          if (saved) {
+            const settings = JSON.parse(saved);
+            setSeuilTemp(settings.seuilTemp ?? 27);
+            setSeuilHumidite(settings.seuilHumidite ?? 75);
+          }
+        } catch (e) {}
+      };
+      loadSeuils();
+    }, []),
+  );
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => setCurrentUser(user));
     return unsubscribe;
   }, []);
 
-  // 🔥 Génération automatique des alertes
   const genererAlerteAuto = async (chambre, type, niveau, message, icone) => {
     try {
       const q = query(
@@ -76,69 +95,74 @@ export default function DashboardScreen() {
     }
   };
 
-  // 🔥 Connexion Firebase temps réel - Chambres
+  // 🔥 Chambres — se relance quand les seuils changent
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "chambres"), (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      data.sort((a, b) => a.id.localeCompare(b.id));
-      setChambres(data);
+    const unsubscribe = onSnapshot(
+      collection(db, "chambres"),
+      async (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        data.sort((a, b) => a.id.localeCompare(b.id));
+        setChambres(data);
 
-      const occupees = data.filter((c) => c.presence).length;
-      const tempMoy =
-        data.length > 0
-          ? Math.round(
-              data.reduce((a, c) => a + c.temperature, 0) / data.length,
-            )
-          : 0;
+        const occupees = data.filter((c) => c.presence).length;
+        const tempMoy =
+          data.length > 0
+            ? Math.round(
+                data.reduce((a, c) => a + c.temperature, 0) / data.length,
+              )
+            : 0;
 
-      data.forEach((chambre) => {
-        if (chambre.temperature > 27) {
-          genererAlerteAuto(
-            chambre,
-            "temperature",
-            "urgent",
-            `Température élevée chambre ${chambre.id}: ${chambre.temperature}°C`,
-            "🌡️",
-          );
-        }
-        if (chambre.fenetre && chambre.clim) {
-          genererAlerteAuto(
-            chambre,
-            "fenetre",
-            "warning",
-            `Fenêtre ouverte avec clim active chambre ${chambre.id}`,
-            "🪟",
-          );
-        }
-        if (chambre.humidite > 75) {
-          genererAlerteAuto(
-            chambre,
-            "humidite",
-            "warning",
-            `Humidité élevée chambre ${chambre.id}: ${chambre.humidite}%`,
-            "💧",
-          );
-        }
-      });
+        data.forEach((chambre) => {
+          if (chambre.temperature > seuilTemp) {
+            genererAlerteAuto(
+              chambre,
+              "temperature",
+              "urgent",
+              `Température élevée chambre ${chambre.id}: ${chambre.temperature}°C`,
+              "🌡️",
+            );
+          }
+          if (chambre.fenetre && chambre.clim) {
+            genererAlerteAuto(
+              chambre,
+              "fenetre",
+              "warning",
+              `Fenêtre ouverte avec clim active chambre ${chambre.id}`,
+              "🪟",
+            );
+          }
+          if (chambre.humidite > seuilHumidite) {
+            genererAlerteAuto(
+              chambre,
+              "humidite",
+              "warning",
+              `Humidité élevée chambre ${chambre.id}: ${chambre.humidite}%`,
+              "💧",
+            );
+          }
+        });
 
-      const alertesCount = data.filter(
-        (c) => c.temperature > 27 || (c.fenetre && c.clim) || c.humidite > 75,
-      ).length;
+        const alertesCount = data.filter(
+          (c) =>
+            c.temperature > seuilTemp ||
+            (c.fenetre && c.clim) ||
+            c.humidite > seuilHumidite,
+        ).length;
 
-      setStats({
-        chambresOccupees: occupees,
-        chambresLibres: data.length - occupees,
-        alertes: alertesCount,
-        temperature: tempMoy,
-      });
-    });
+        setStats({
+          chambresOccupees: occupees,
+          chambresLibres: data.length - occupees,
+          alertes: alertesCount,
+          temperature: tempMoy,
+        });
+      },
+    );
     return unsubscribe;
-  }, []);
+  }, [seuilTemp, seuilHumidite]);
 
-  // 🔥 Connexion Firebase temps réel - Zones
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "zones"), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
@@ -165,13 +189,9 @@ export default function DashboardScreen() {
         />
       }
     >
-      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerGreeting}>
-            {" "}
-            صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
-          </Text>
+          <Text style={styles.headerGreeting}>Bonjour 👋</Text>
           <Text style={styles.headerName}>
             {currentUser?.displayName || "Manager"}
           </Text>
@@ -199,7 +219,6 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Stats Cards */}
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: "#1565C0" }]}>
           <Text style={styles.statIcon}>🛏️</Text>
@@ -226,7 +245,6 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Chambres */}
       <Text style={styles.sectionTitle}>🛏️ État des Chambres</Text>
       {chambres.length === 0 ? (
         <View style={styles.loadingCard}>
@@ -263,7 +281,7 @@ export default function DashboardScreen() {
                 <Text style={{ opacity: chambre.clim ? 1 : 0.3 }}>❄️</Text>
                 <Text style={{ opacity: chambre.fenetre ? 1 : 0.3 }}>🪟</Text>
               </View>
-              {chambre.temperature > 27 && (
+              {chambre.temperature > seuilTemp && (
                 <View style={styles.alertBadge}>
                   <Text style={styles.alertBadgeText}>⚠️ Chaud</Text>
                 </View>
@@ -275,7 +293,7 @@ export default function DashboardScreen() {
                   <Text style={styles.alertBadgeText}>🪟 Fenêtre!</Text>
                 </View>
               )}
-              {chambre.humidite > 75 && (
+              {chambre.humidite > seuilHumidite && (
                 <View
                   style={[styles.alertBadge, { backgroundColor: "#1565C0" }]}
                 >
@@ -287,7 +305,6 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Bouton Historique */}
       <TouchableOpacity
         style={styles.historyBtn}
         onPress={() => router.push("/(tabs)/history")}
@@ -297,7 +314,6 @@ export default function DashboardScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Zones Communes */}
       <Text style={styles.sectionTitle}>🏨 Zones Communes</Text>
       {zonesCommunes.length === 0 ? (
         <View style={styles.loadingCard}>
@@ -329,7 +345,6 @@ export default function DashboardScreen() {
           ))}
         </View>
       )}
-
       <View style={{ height: 30 }} />
     </ScrollView>
   );
