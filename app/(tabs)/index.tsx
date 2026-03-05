@@ -191,7 +191,10 @@ export default function DashboardScreen() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerGreeting}>Bonjour 👋</Text>
+          <Text style={styles.headerGreeting}>
+            {" "}
+            صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
+          </Text>
           <Text style={styles.headerName}>
             {currentUser?.displayName || "Manager"}
           </Text>
