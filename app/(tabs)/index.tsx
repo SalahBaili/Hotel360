@@ -256,12 +256,13 @@ export default function DashboardScreen() {
       ) : (
         <View style={styles.chambresGrid}>
           {chambres.map((chambre) => (
-            <View
+            <TouchableOpacity
               key={chambre.id}
               style={[
                 styles.chambreCard,
                 chambre.presence && styles.chambreOccupee,
               ]}
+              onPress={() => router.push(`/chambre-detail?id=${chambre.id}`)}
             >
               <View style={styles.chambreHeader}>
                 <Text style={styles.chambreNum}>#{chambre.id}</Text>
@@ -303,7 +304,7 @@ export default function DashboardScreen() {
                   <Text style={styles.alertBadgeText}>💧 Humide!</Text>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
@@ -325,9 +326,10 @@ export default function DashboardScreen() {
       ) : (
         <View style={styles.zonesGrid}>
           {zonesCommunes.map((zone) => (
-            <View
+            <TouchableOpacity
               key={zone.id}
               style={[styles.zoneCard, zone.occupee && styles.zoneOccupee]}
+              onPress={() => router.push(`/zone-detail?id=${zone.nom}`)}
             >
               <Text style={styles.zoneIcon}>{zone.icone}</Text>
               <Text style={styles.zoneNom}>{zone.nom}</Text>
@@ -344,7 +346,7 @@ export default function DashboardScreen() {
                   👥 {zone.personnes} pers.
                 </Text>
               )}
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       )}
