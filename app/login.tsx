@@ -2,7 +2,9 @@ import { useRouter } from "expo-router";
 import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { auth } from "../config/firebase";
+import { auth, db } from "../config/firebase";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -31,7 +33,38 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const uid = userCredential.user.uid;
+
+      // ✅ Vérifier la blacklist (comptes supprimés)
+      const blackSnap = await getDoc(doc(db, "blacklist", uid));
+      if (blackSnap.exists()) {
+        await signOut(auth);
+        Alert.alert(
+          "🚫 Accès refusé",
+          "Ce compte a été supprimé par l'administrateur.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Vérifier si le compte est désactivé
+      const userSnap = await getDoc(doc(db, "users", uid));
+      if (userSnap.exists() && userSnap.data().disabled === true) {
+        await signOut(auth);
+        Alert.alert(
+          "🔴 Accès refusé",
+          "Ce compte a été désactivé par l'administrateur.\nContactez votre responsable.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Connexion réussie — replace pour bloquer retour arrière
       router.replace("/(tabs)");
     } catch (error) {
       Alert.alert("Erreur", "Email ou mot de passe incorrect");
@@ -52,7 +85,7 @@ export default function LoginScreen() {
       await sendPasswordResetEmail(auth, email);
       Alert.alert(
         "✅ Email envoyé !",
-        `Un email de réinitialisation a été envoyé à ${email}. Vérifiez votre boîte mail.`,
+        `Un email de réinitialisation a été envoyé à ${email}.`,
       );
     } catch (error) {
       Alert.alert("Erreur", "Email introuvable dans notre système");

@@ -17,7 +17,7 @@ const ZONES_DATA = {
     icone: "🏋️",
     couleur: "#E53935",
     description:
-      "Salle de sport entièrement équipée avec machines cardio, musculation et espace fitness. Disponible 7j/7 pour tous les résidents.",
+      "Salle de sport entièrement équipée avec machines cardio, musculation et espace fitness.",
     horaires: "06:00 — 22:00",
     photos: [
       "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&q=80",
@@ -34,28 +34,12 @@ const ZONES_DATA = {
         restantes: 4,
       },
       {
-        jour: "Lun",
-        heure: "10:00",
-        cours: "Yoga Matinal",
-        entraineur: "Sonia M.",
-        places: 10,
-        restantes: 7,
-      },
-      {
         jour: "Mar",
         heure: "09:00",
         cours: "Danse Orientale",
         entraineur: "Leila K.",
         places: 15,
         restantes: 3,
-      },
-      {
-        jour: "Mar",
-        heure: "17:00",
-        cours: "HIIT Training",
-        entraineur: "Ahmed B.",
-        places: 10,
-        restantes: 2,
       },
       {
         jour: "Mer",
@@ -72,22 +56,6 @@ const ZONES_DATA = {
         entraineur: "Leila K.",
         places: 20,
         restantes: 5,
-      },
-      {
-        jour: "Ven",
-        heure: "09:00",
-        cours: "Cardio Dance",
-        entraineur: "Ahmed B.",
-        places: 15,
-        restantes: 6,
-      },
-      {
-        jour: "Sam",
-        heure: "10:00",
-        cours: "Stretching",
-        entraineur: "Sonia M.",
-        places: 10,
-        restantes: 9,
       },
     ],
     equipements: [
@@ -108,7 +76,6 @@ const ZONES_DATA = {
     photos: [
       "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80",
       "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=600&q=80",
-      "https://images.unsplash.com/photo-1596701062351-8ac031a0a977?w=600&q=80",
     ],
     calendrier: [],
     services: [
@@ -116,7 +83,6 @@ const ZONES_DATA = {
       "📶 Wi-Fi gratuit",
       "🧳 Consigne bagages",
       "🚕 Service taxi",
-      "💱 Change devise",
     ],
     equipements: [
       "☕ Bar lounge",
@@ -129,13 +95,11 @@ const ZONES_DATA = {
     nom: "Piscine",
     icone: "🏊",
     couleur: "#0288D1",
-    description:
-      "Piscine extérieure chauffée avec vue sur la Méditerranée. Bar piscine et service de serviettes inclus.",
+    description: "Piscine extérieure chauffée avec vue sur la Méditerranée.",
     horaires: "08:00 — 20:00",
     photos: [
       "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=80",
       "https://images.unsplash.com/photo-1540541338537-1220e02b4db3?w=600&q=80",
-      "https://images.unsplash.com/photo-1568572933382-74d440642117?w=600&q=80",
     ],
     calendrier: [
       {
@@ -160,7 +124,6 @@ const ZONES_DATA = {
       "🌡️ Eau chauffée",
       "🍹 Bar piscine",
       "🪑 Transats",
-      "🏖️ Zone bronzage",
     ],
   },
   restaurant: {
@@ -173,7 +136,6 @@ const ZONES_DATA = {
     photos: [
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80",
       "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80",
-      "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=80",
     ],
     menuJour: [
       {
@@ -215,13 +177,11 @@ const ZONES_DATA = {
     nom: "Salle de Réunion",
     icone: "📊",
     couleur: "#5C6BC0",
-    description:
-      "Salle de réunion équipée pour vos événements professionnels. Capacité jusqu'à 30 personnes.",
+    description: "Salle de réunion équipée pour vos événements professionnels.",
     horaires: "08:00 — 20:00",
     photos: [
       "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80",
       "https://images.unsplash.com/photo-1431540015161-0bf868a2d407?w=600&q=80",
-      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&q=80",
     ],
     calendrier: [
       {
@@ -231,14 +191,6 @@ const ZONES_DATA = {
         entraineur: "Réservé",
         places: 30,
         restantes: 20,
-      },
-      {
-        jour: "Mar",
-        heure: "14:00",
-        cours: "Formation RH",
-        entraineur: "Réservé",
-        places: 20,
-        restantes: 8,
       },
       {
         jour: "Jeu",
@@ -253,7 +205,6 @@ const ZONES_DATA = {
       "📽️ Projecteur HD",
       "📡 Visioconférence",
       "📶 Wi-Fi fibre",
-      "🖊️ Tableau blanc",
       "☕ Service café",
     ],
   },
@@ -267,7 +218,6 @@ const ZONES_DATA = {
     photos: [
       "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80",
       "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80",
-      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&q=80",
     ],
     calendrier: [
       {
@@ -286,21 +236,12 @@ const ZONES_DATA = {
         places: 3,
         restantes: 1,
       },
-      {
-        jour: "Mer/Sam",
-        heure: "16:00",
-        cours: "Hammam rituel",
-        entraineur: "Nadia S.",
-        places: 6,
-        restantes: 4,
-      },
     ],
     equipements: [
       "🛁 Jacuzzi privé",
       "🧖 Hammam",
       "💅 Soins beauté",
       "🌺 Aromathérapie",
-      "🧘 Espace détente",
     ],
   },
 };
@@ -315,22 +256,16 @@ const getNomKey = (nom) => {
   const map = {
     gym: "gym",
     "salle-de-sport": "gym",
-    sport: "gym",
     lobby: "lobby",
     reception: "lobby",
-    accueil: "lobby",
     piscine: "piscine",
     pool: "piscine",
     restaurant: "restaurant",
-    resto: "restaurant",
     "salle-de-reunion": "salle-reunion",
     "salle-reunion": "salle-reunion",
-    reunion: "salle-reunion",
-    meeting: "salle-reunion",
     salle: "salle-reunion",
     spa: "spa",
     "bien-etre": "spa",
-    hammam: "spa",
   };
   return map[normalized] || map[nom.toLowerCase()] || normalized;
 };
@@ -346,7 +281,7 @@ export default function ZoneDetailScreen() {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("info");
 
-  // ✅ Ces états se mettent à jour automatiquement depuis Firebase
+  // ── States mis à jour depuis Firebase ──
   const [photos, setPhotos] = useState(zoneDataStatic?.photos || []);
   const [description, setDescription] = useState(
     zoneDataStatic?.description || "",
@@ -354,6 +289,10 @@ export default function ZoneDetailScreen() {
   const [horaires, setHoraires] = useState(zoneDataStatic?.horaires || "");
   const [nom, setNom] = useState(zoneDataStatic?.nom || "");
   const [icone, setIcone] = useState(zoneDataStatic?.icone || "");
+  const [calendrier, setCalendrier] = useState(
+    zoneDataStatic?.calendrier || [],
+  );
+  const [menuJour, setMenuJour] = useState(zoneDataStatic?.menuJour || null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "zones"), (snapshot) => {
@@ -363,8 +302,7 @@ export default function ZoneDetailScreen() {
       );
       if (found) {
         setZoneFirebase(found);
-        // ✅ Priorité aux données Firebase
-        if (found.photos && found.photos.length > 0) {
+        if (found.photos?.length > 0) {
           setPhotos(found.photos);
           setPhotoIndex(0);
         }
@@ -372,6 +310,10 @@ export default function ZoneDetailScreen() {
         if (found.horaires) setHoraires(found.horaires);
         if (found.nom) setNom(found.nom);
         if (found.icone) setIcone(found.icone);
+        // ✅ Calendrier depuis Firebase
+        if (found.calendrier?.length > 0) setCalendrier(found.calendrier);
+        // ✅ Menu depuis Firebase
+        if (found.menuJour?.length > 0) setMenuJour(found.menuJour);
       }
     });
     return unsubscribe;
@@ -409,11 +351,12 @@ export default function ZoneDetailScreen() {
     Math.round((occupees / maxPersonnes) * 100),
     100,
   );
+
   const tabs = [
     "info",
     "photos",
-    ...(zoneDataStatic.calendrier?.length > 0 ? ["calendrier"] : []),
-    ...(zoneDataStatic.menuJour ? ["menu"] : []),
+    ...(calendrier?.length > 0 ? ["calendrier"] : []),
+    ...(menuJour ? ["menu"] : []),
   ];
 
   return (
@@ -529,7 +472,6 @@ export default function ZoneDetailScreen() {
           </View>
         )}
 
-        {/* ✅ TAB PHOTOS — affiche les photos Firebase uploadées par l'admin */}
         {activeTab === "photos" && (
           <View>
             {photos.length > 0 ? (
@@ -581,11 +523,16 @@ export default function ZoneDetailScreen() {
           </View>
         )}
 
-        {activeTab === "calendrier" &&
-          zoneDataStatic.calendrier?.length > 0 && (
-            <View>
-              <Text style={styles.sectionLabel}>Programme des activités</Text>
-              {zoneDataStatic.calendrier.map((cours, i) => (
+        {/* ✅ CALENDRIER — depuis Firebase */}
+        {activeTab === "calendrier" && (
+          <View>
+            <Text style={styles.sectionLabel}>Programme des activités</Text>
+            {calendrier.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>Aucune activité programmée</Text>
+              </View>
+            ) : (
+              calendrier.map((cours, i) => (
                 <View key={i} style={styles.coursCard}>
                   <View
                     style={[styles.coursJour, { backgroundColor: couleur }]}
@@ -626,17 +573,19 @@ export default function ZoneDetailScreen() {
                     </View>
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
+              ))
+            )}
+          </View>
+        )}
 
-        {activeTab === "menu" && zoneDataStatic.menuJour && (
+        {/* ✅ MENU — depuis Firebase */}
+        {activeTab === "menu" && menuJour && (
           <View>
             <Text style={styles.sectionLabel}>Menu du jour</Text>
-            {zoneDataStatic.menuJour.map((repas, i) => (
+            {menuJour.map((repas, i) => (
               <View key={i} style={styles.repasCard}>
                 <Text style={styles.repasTitle}>{repas.repas}</Text>
-                {repas.items.map((item, j) => (
+                {(repas.items || []).filter(Boolean).map((item, j) => (
                   <View key={j} style={styles.menuItem}>
                     <Text style={styles.menuDot}>•</Text>
                     <Text style={styles.menuItemText}>{item}</Text>
@@ -763,6 +712,13 @@ const styles = StyleSheet.create({
   },
   noPhotosText: { color: "#888", fontSize: 16 },
   noPhotosHint: { color: "#555", fontSize: 12, textAlign: "center" },
+  emptyBox: {
+    backgroundColor: "#1E2D45",
+    borderRadius: 14,
+    padding: 30,
+    alignItems: "center",
+  },
+  emptyText: { color: "#888", fontSize: 14 },
   coursCard: {
     flexDirection: "row",
     backgroundColor: "#1E2D45",
