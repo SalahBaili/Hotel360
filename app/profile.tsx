@@ -1,20 +1,30 @@
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { signOut, updatePassword, updateProfile } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import React, { useState } from "react";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { auth, db } from "../config/firebase";
+
+const ROLE_CONFIG = {
+  admin: { label: "👑 Administrateur", color: "#E53935", bg: "#E5393522" },
+  manager: { label: "📊 Manager", color: "#F57C00", bg: "#F57C0022" },
+  receptionniste: {
+    label: "🛎️ Réceptionniste",
+    color: "#1565C0",
+    bg: "#1565C022",
+  },
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,6 +35,23 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [photoUri, setPhotoUri] = useState(user?.photoURL || null);
+  const [role, setRole] = useState("admin");
+
+  // Charger le rôle depuis Firestore
+  useEffect(() => {
+    const loadRole = async () => {
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists() && snap.data().role) {
+          setRole(snap.data().role);
+        }
+      } catch (e) {}
+    };
+    loadRole();
+  }, [user]);
+
+  const roleInfo = ROLE_CONFIG[role] || ROLE_CONFIG.admin;
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -120,7 +147,6 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Retour</Text>
@@ -153,8 +179,21 @@ export default function ProfileScreen() {
           {user?.displayName || "Utilisateur"}
         </Text>
         <Text style={styles.userEmail}>{user?.email}</Text>
-        <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>👑 Admin</Text>
+
+        {/* Badge rôle dynamique */}
+        <View
+          style={[
+            styles.roleBadge,
+            {
+              backgroundColor: roleInfo.bg,
+              borderColor: roleInfo.color,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <Text style={[styles.roleText, { color: roleInfo.color }]}>
+            {roleInfo.label}
+          </Text>
         </View>
       </View>
 
@@ -164,6 +203,17 @@ export default function ProfileScreen() {
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>📧 Email</Text>
           <Text style={styles.infoValue}>{user?.email}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>🎭 Rôle</Text>
+          <Text
+            style={[
+              styles.infoValue,
+              { color: roleInfo.color, fontWeight: "bold" },
+            ]}
+          >
+            {roleInfo.label}
+          </Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>🆔 ID</Text>
@@ -253,6 +303,8 @@ export default function ProfileScreen() {
           <Text style={styles.btnText}>🔑 Mettre à jour</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Paramètres */}
       <TouchableOpacity
         style={[
           styles.btn,
@@ -269,7 +321,23 @@ export default function ProfileScreen() {
         <Text style={styles.btnText}>⚙️ Paramètres</Text>
       </TouchableOpacity>
 
-      {/* Déconnexion */}
+      {/* Admin seulement : gérer les utilisateurs */}
+      {role === "admin" && (
+        <TouchableOpacity
+          style={[
+            styles.btn,
+            {
+              backgroundColor: "#7B1FA2",
+              marginHorizontal: 15,
+              marginBottom: 10,
+            },
+          ]}
+          onPress={() => router.push("/manage-users")}
+        >
+          <Text style={styles.btnText}>👥 Gérer les utilisateurs</Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity
         style={[
           styles.btn,
@@ -338,13 +406,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   userEmail: { fontSize: 14, color: "#888", marginBottom: 10 },
-  roleBadge: {
-    backgroundColor: "#E53935",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-  },
-  roleText: { color: "#fff", fontSize: 13, fontWeight: "bold" },
+  roleBadge: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6 },
+  roleText: { fontSize: 13, fontWeight: "bold" },
   section: {
     backgroundColor: "#1E2D45",
     borderRadius: 16,

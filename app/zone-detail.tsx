@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    Dimensions,
     Image,
     ScrollView,
     StyleSheet,
@@ -12,11 +11,6 @@ import {
 } from "react-native";
 import { db } from "../config/firebase";
 
-const { width } = Dimensions.get("window");
-
-// ══════════════════════════════════════
-// DONNÉES STATIQUES PAR ZONE
-// ══════════════════════════════════════
 const ZONES_DATA = {
   gym: {
     nom: "Salle de Sport",
@@ -109,7 +103,7 @@ const ZONES_DATA = {
     icone: "🏨",
     couleur: "#1565C0",
     description:
-      "Espace d'accueil luxueux avec service de conciergerie, espace lounge et Wi-Fi haut débit. Point central de l'hôtel.",
+      "Espace d'accueil luxueux avec service de conciergerie, espace lounge et Wi-Fi haut débit.",
     horaires: "24h/24 — 7j/7",
     photos: [
       "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80",
@@ -136,7 +130,7 @@ const ZONES_DATA = {
     icone: "🏊",
     couleur: "#0288D1",
     description:
-      "Piscine extérieure chauffée avec vue sur la Méditerranée. Bar piscine et service de serviettes inclus pour tous les résidents.",
+      "Piscine extérieure chauffée avec vue sur la Méditerranée. Bar piscine et service de serviettes inclus.",
     horaires: "08:00 — 20:00",
     photos: [
       "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&q=80",
@@ -174,7 +168,7 @@ const ZONES_DATA = {
     icone: "🍽️",
     couleur: "#C9A96E",
     description:
-      "Restaurant gastronomique proposant une cuisine tunisienne et méditerranéenne raffinée. Menu renouvelé chaque jour selon les saisons.",
+      "Restaurant gastronomique proposant une cuisine tunisienne et méditerranéenne raffinée.",
     horaires: "07:00 — 23:00",
     photos: [
       "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80",
@@ -222,7 +216,7 @@ const ZONES_DATA = {
     icone: "📊",
     couleur: "#5C6BC0",
     description:
-      "Salle de réunion équipée pour vos événements professionnels. Capacité jusqu'à 30 personnes avec équipement audiovisuel complet.",
+      "Salle de réunion équipée pour vos événements professionnels. Capacité jusqu'à 30 personnes.",
     horaires: "08:00 — 20:00",
     photos: [
       "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80",
@@ -268,7 +262,7 @@ const ZONES_DATA = {
     icone: "💆",
     couleur: "#7B1FA2",
     description:
-      "Espace spa premium proposant massages, soins du visage, hammam et jacuzzi. Une parenthèse de détente au cœur de l'hôtel.",
+      "Espace spa premium proposant massages, soins du visage, hammam et jacuzzi.",
     horaires: "09:00 — 21:00",
     photos: [
       "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80",
@@ -311,7 +305,6 @@ const ZONES_DATA = {
   },
 };
 
-// Mapping des noms Firebase vers les clés locales
 const getNomKey = (nom) => {
   if (!nom) return "";
   const normalized = nom
@@ -319,7 +312,6 @@ const getNomKey = (nom) => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, "-");
-
   const map = {
     gym: "gym",
     "salle-de-sport": "gym",
@@ -329,14 +321,12 @@ const getNomKey = (nom) => {
     accueil: "lobby",
     piscine: "piscine",
     pool: "piscine",
-    swimming: "piscine",
     restaurant: "restaurant",
     resto: "restaurant",
     "salle-de-reunion": "salle-reunion",
     "salle-reunion": "salle-reunion",
     reunion: "salle-reunion",
     meeting: "salle-reunion",
-    conference: "salle-reunion",
     salle: "salle-reunion",
     spa: "spa",
     "bien-etre": "spa",
@@ -350,11 +340,20 @@ export default function ZoneDetailScreen() {
   const params = useLocalSearchParams();
   const zoneId = params.id as string;
   const zoneKey = getNomKey(zoneId);
-  const zoneData = ZONES_DATA[zoneKey];
+  const zoneDataStatic = ZONES_DATA[zoneKey];
 
   const [zoneFirebase, setZoneFirebase] = useState(null);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [activeTab, setActiveTab] = useState("info");
+
+  // ✅ Ces états se mettent à jour automatiquement depuis Firebase
+  const [photos, setPhotos] = useState(zoneDataStatic?.photos || []);
+  const [description, setDescription] = useState(
+    zoneDataStatic?.description || "",
+  );
+  const [horaires, setHoraires] = useState(zoneDataStatic?.horaires || "");
+  const [nom, setNom] = useState(zoneDataStatic?.nom || "");
+  const [icone, setIcone] = useState(zoneDataStatic?.icone || "");
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "zones"), (snapshot) => {
@@ -362,12 +361,23 @@ export default function ZoneDetailScreen() {
       const found = zones.find(
         (z) => getNomKey(z.nom) === zoneKey || getNomKey(z.id) === zoneKey,
       );
-      if (found) setZoneFirebase(found);
+      if (found) {
+        setZoneFirebase(found);
+        // ✅ Priorité aux données Firebase
+        if (found.photos && found.photos.length > 0) {
+          setPhotos(found.photos);
+          setPhotoIndex(0);
+        }
+        if (found.description) setDescription(found.description);
+        if (found.horaires) setHoraires(found.horaires);
+        if (found.nom) setNom(found.nom);
+        if (found.icone) setIcone(found.icone);
+      }
     });
     return unsubscribe;
   }, [zoneKey]);
 
-  if (!zoneData) {
+  if (!zoneDataStatic) {
     return (
       <View style={styles.container}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -380,9 +390,11 @@ export default function ZoneDetailScreen() {
     );
   }
 
+  const couleur = zoneDataStatic.couleur;
   const occupees = zoneFirebase?.personnes || 0;
   const maxPersonnes =
-    zoneKey === "gym"
+    zoneFirebase?.capacite ||
+    (zoneKey === "gym"
       ? 30
       : zoneKey === "piscine"
         ? 50
@@ -392,31 +404,27 @@ export default function ZoneDetailScreen() {
             ? 10
             : zoneKey === "salle-reunion"
               ? 30
-              : 100;
+              : 100);
   const tauxOccupation = Math.min(
     Math.round((occupees / maxPersonnes) * 100),
     100,
   );
-
   const tabs = [
     "info",
     "photos",
-    ...(zoneData.calendrier?.length > 0 ? ["calendrier"] : []),
-    ...(zoneData.menuJour ? ["menu"] : []),
+    ...(zoneDataStatic.calendrier?.length > 0 ? ["calendrier"] : []),
+    ...(zoneDataStatic.menuJour ? ["menu"] : []),
   ];
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.hero, { backgroundColor: zoneData.couleur + "22" }]}>
+      <View style={[styles.hero, { backgroundColor: couleur + "22" }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>← Retour</Text>
         </TouchableOpacity>
-        <Text style={styles.heroIcon}>{zoneData.icone}</Text>
-        <Text style={styles.heroTitle}>{zoneData.nom}</Text>
-        <Text style={styles.heroHoraires}>🕐 {zoneData.horaires}</Text>
-
-        {/* Occupation temps réel */}
+        <Text style={styles.heroIcon}>{icone}</Text>
+        <Text style={styles.heroTitle}>{nom}</Text>
+        <Text style={styles.heroHoraires}>🕐 {horaires}</Text>
         <View style={styles.occupationBox}>
           <View style={styles.occupationRow}>
             <Text style={styles.occupationLabel}>Occupation actuelle</Text>
@@ -447,8 +455,6 @@ export default function ZoneDetailScreen() {
           </View>
           <Text style={styles.occupationPct}>{tauxOccupation}% occupé</Text>
         </View>
-
-        {/* Statut */}
         <View
           style={[
             styles.statusBadge,
@@ -470,7 +476,6 @@ export default function ZoneDetailScreen() {
         </View>
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabBar}>
         {tabs.map((tab) => (
           <TouchableOpacity
@@ -478,17 +483,14 @@ export default function ZoneDetailScreen() {
             style={[
               styles.tab,
               activeTab === tab && {
-                borderBottomColor: zoneData.couleur,
+                borderBottomColor: couleur,
                 borderBottomWidth: 2,
               },
             ]}
             onPress={() => setActiveTab(tab)}
           >
             <Text
-              style={[
-                styles.tabText,
-                activeTab === tab && { color: zoneData.couleur },
-              ]}
+              style={[styles.tabText, activeTab === tab && { color: couleur }]}
             >
               {tab === "info"
                 ? "ℹ️ Info"
@@ -503,118 +505,135 @@ export default function ZoneDetailScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* TAB INFO */}
         {activeTab === "info" && (
           <View>
-            <Text style={styles.description}>{zoneData.description}</Text>
-
-            {/* Équipements */}
+            <Text style={styles.description}>{description}</Text>
             <Text style={styles.sectionLabel}>Équipements & Services</Text>
             <View style={styles.equipGrid}>
-              {(zoneData.equipements || zoneData.services || []).map(
-                (eq, i) => (
-                  <View key={i} style={styles.equipItem}>
-                    <Text style={styles.equipText}>{eq}</Text>
-                  </View>
-                ),
-              )}
-            </View>
-
-            {/* Photo principale */}
-            <Text style={styles.sectionLabel}>Aperçu</Text>
-            <Image
-              source={{ uri: zoneData.photos[0] }}
-              style={styles.mainPhoto}
-            />
-          </View>
-        )}
-
-        {/* TAB PHOTOS */}
-        {activeTab === "photos" && (
-          <View>
-            <Image
-              source={{ uri: zoneData.photos[photoIndex] }}
-              style={styles.bigPhoto}
-            />
-            <View style={styles.thumbnailRow}>
-              {zoneData.photos.map((p, i) => (
-                <TouchableOpacity key={i} onPress={() => setPhotoIndex(i)}>
-                  <Image
-                    source={{ uri: p }}
-                    style={[
-                      styles.thumbnail,
-                      photoIndex === i && {
-                        borderColor: zoneData.couleur,
-                        borderWidth: 2,
-                      },
-                    ]}
-                  />
-                </TouchableOpacity>
+              {(
+                zoneDataStatic.equipements ||
+                zoneDataStatic.services ||
+                []
+              ).map((eq, i) => (
+                <View key={i} style={styles.equipItem}>
+                  <Text style={styles.equipText}>{eq}</Text>
+                </View>
               ))}
             </View>
-            <Text style={styles.photoCaption}>
-              {zoneData.nom} — Photo {photoIndex + 1}/{zoneData.photos.length}
-            </Text>
+            {photos.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>Aperçu</Text>
+                <Image source={{ uri: photos[0] }} style={styles.mainPhoto} />
+              </>
+            )}
           </View>
         )}
 
-        {/* TAB CALENDRIER */}
-        {activeTab === "calendrier" && zoneData.calendrier?.length > 0 && (
+        {/* ✅ TAB PHOTOS — affiche les photos Firebase uploadées par l'admin */}
+        {activeTab === "photos" && (
           <View>
-            <Text style={styles.sectionLabel}>Programme des activités</Text>
-            {zoneData.calendrier.map((cours, i) => (
-              <View key={i} style={styles.coursCard}>
-                <View
-                  style={[
-                    styles.coursJour,
-                    { backgroundColor: zoneData.couleur },
-                  ]}
-                >
-                  <Text style={styles.coursJourText}>{cours.jour}</Text>
-                  <Text style={styles.coursHeureText}>{cours.heure}</Text>
+            {photos.length > 0 ? (
+              <>
+                <Image
+                  source={{
+                    uri: photos[Math.min(photoIndex, photos.length - 1)],
+                  }}
+                  style={styles.bigPhoto}
+                />
+                <View style={styles.thumbnailRow}>
+                  {photos.map((p, i) => (
+                    <TouchableOpacity key={i} onPress={() => setPhotoIndex(i)}>
+                      <Image
+                        source={{ uri: p }}
+                        style={[
+                          styles.thumbnail,
+                          photoIndex === i && {
+                            borderColor: couleur,
+                            borderWidth: 2,
+                          },
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <View style={styles.coursInfo}>
-                  <Text style={styles.coursNom}>{cours.cours}</Text>
-                  <Text style={styles.coursEntraineur}>
-                    👤 {cours.entraineur}
-                  </Text>
-                  <View style={styles.coursPlaces}>
-                    <Text style={styles.coursPlacesText}>
-                      🪑 {cours.restantes}/{cours.places} places
+                <Text style={styles.photoCaption}>
+                  {nom} — Photo {Math.min(photoIndex, photos.length - 1) + 1}/
+                  {photos.length}
+                </Text>
+                {zoneFirebase?.photos?.length > 0 && (
+                  <View style={styles.firebaseBadge}>
+                    <Text style={styles.firebaseBadgeText}>
+                      ☁️ Photos ajoutées par l'administrateur
                     </Text>
-                    <View
-                      style={[
-                        styles.placesBadge,
-                        {
-                          backgroundColor:
-                            cours.restantes === 0
-                              ? "#E53935"
-                              : cours.restantes <= 3
-                                ? "#F57C00"
-                                : "#2E7D32",
-                        },
-                      ]}
-                    >
-                      <Text style={styles.placesBadgeText}>
-                        {cours.restantes === 0
-                          ? "Complet"
-                          : cours.restantes <= 3
-                            ? "Presque plein"
-                            : "Disponible"}
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.noPhotosBox}>
+                <Text style={styles.noPhotosText}>
+                  📷 Aucune photo disponible
+                </Text>
+                <Text style={styles.noPhotosHint}>
+                  L'admin peut ajouter des photos depuis "Gérer les zones"
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === "calendrier" &&
+          zoneDataStatic.calendrier?.length > 0 && (
+            <View>
+              <Text style={styles.sectionLabel}>Programme des activités</Text>
+              {zoneDataStatic.calendrier.map((cours, i) => (
+                <View key={i} style={styles.coursCard}>
+                  <View
+                    style={[styles.coursJour, { backgroundColor: couleur }]}
+                  >
+                    <Text style={styles.coursJourText}>{cours.jour}</Text>
+                    <Text style={styles.coursHeureText}>{cours.heure}</Text>
+                  </View>
+                  <View style={styles.coursInfo}>
+                    <Text style={styles.coursNom}>{cours.cours}</Text>
+                    <Text style={styles.coursEntraineur}>
+                      👤 {cours.entraineur}
+                    </Text>
+                    <View style={styles.coursPlaces}>
+                      <Text style={styles.coursPlacesText}>
+                        🪑 {cours.restantes}/{cours.places} places
                       </Text>
+                      <View
+                        style={[
+                          styles.placesBadge,
+                          {
+                            backgroundColor:
+                              cours.restantes === 0
+                                ? "#E53935"
+                                : cours.restantes <= 3
+                                  ? "#F57C00"
+                                  : "#2E7D32",
+                          },
+                        ]}
+                      >
+                        <Text style={styles.placesBadgeText}>
+                          {cours.restantes === 0
+                            ? "Complet"
+                            : cours.restantes <= 3
+                              ? "Presque plein"
+                              : "Disponible"}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-            ))}
-          </View>
-        )}
+              ))}
+            </View>
+          )}
 
-        {/* TAB MENU (Restaurant) */}
-        {activeTab === "menu" && zoneData.menuJour && (
+        {activeTab === "menu" && zoneDataStatic.menuJour && (
           <View>
             <Text style={styles.sectionLabel}>Menu du jour</Text>
-            {zoneData.menuJour.map((repas, i) => (
+            {zoneDataStatic.menuJour.map((repas, i) => (
               <View key={i} style={styles.repasCard}>
                 <Text style={styles.repasTitle}>{repas.repas}</Text>
                 {repas.items.map((item, j) => (
@@ -716,14 +735,34 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "center",
     marginBottom: 8,
+    flexWrap: "wrap",
   },
   thumbnail: { width: 80, height: 60, borderRadius: 8 },
   photoCaption: {
     textAlign: "center",
     color: "#888",
     fontSize: 12,
-    marginBottom: 16,
+    marginBottom: 8,
   },
+  firebaseBadge: {
+    backgroundColor: "#1565C022",
+    borderRadius: 8,
+    padding: 8,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#64B5F6",
+    marginTop: 4,
+  },
+  firebaseBadgeText: { color: "#64B5F6", fontSize: 11 },
+  noPhotosBox: {
+    backgroundColor: "#1E2D45",
+    borderRadius: 14,
+    padding: 40,
+    alignItems: "center",
+    gap: 8,
+  },
+  noPhotosText: { color: "#888", fontSize: 16 },
+  noPhotosHint: { color: "#555", fontSize: 12, textAlign: "center" },
   coursCard: {
     flexDirection: "row",
     backgroundColor: "#1E2D45",

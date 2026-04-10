@@ -3,6 +3,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -34,8 +36,23 @@ export default function DashboardScreen() {
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [seuilTemp, setSeuilTemp] = useState(27);
   const [seuilHumidite, setSeuilHumidite] = useState(75);
+  const [userRole, setUserRole] = useState("admin");
 
-  // 🔥 Recharger les seuils à chaque fois que la page devient active
+  // Charger le rôle depuis Firestore
+  useEffect(() => {
+    const loadRole = async () => {
+      if (!auth.currentUser) return;
+      try {
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (snap.exists() && snap.data().role) {
+          setUserRole(snap.data().role);
+        }
+      } catch (e) {}
+    };
+    loadRole();
+  }, []);
+
+  // Recharger les seuils à chaque fois que la page devient active
   useFocusEffect(
     useCallback(() => {
       const loadSeuils = async () => {
@@ -95,7 +112,7 @@ export default function DashboardScreen() {
     }
   };
 
-  // 🔥 Chambres — se relance quand les seuils changent
+  // Chambres — se relance quand les seuils changent
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "chambres"),
@@ -175,6 +192,18 @@ export default function DashboardScreen() {
     return unsubscribe;
   }, []);
 
+  const getRoleColor = () => {
+    if (userRole === "admin") return "#E53935";
+    if (userRole === "manager") return "#F57C00";
+    return "#1565C0";
+  };
+
+  const getRoleLabel = () => {
+    if (userRole === "admin") return "👑 Admin";
+    if (userRole === "manager") return "📊 Manager";
+    return "🛎️ Réceptionniste";
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -189,10 +218,10 @@ export default function DashboardScreen() {
         />
       }
     >
+      {/* ── HEADER ── */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerGreeting}>
-            {" "}
             صلي على النبي محمد صلى الله عليه وسلم 🤲🏻
           </Text>
           <Text style={styles.headerName}>
@@ -205,6 +234,20 @@ export default function DashboardScreen() {
               month: "long",
             })}
           </Text>
+          {/* Badge rôle */}
+          <View
+            style={[
+              styles.roleBadgeSmall,
+              {
+                backgroundColor: getRoleColor() + "22",
+                borderColor: getRoleColor(),
+              },
+            ]}
+          >
+            <Text style={[styles.roleBadgeText, { color: getRoleColor() }]}>
+              {getRoleLabel()}
+            </Text>
+          </View>
         </View>
         <TouchableOpacity onPress={() => router.push("/profile")}>
           {currentUser?.photoURL ? (
@@ -222,6 +265,7 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── STATS ── */}
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: "#1565C0" }]}>
           <Text style={styles.statIcon}>🛏️</Text>
@@ -248,6 +292,76 @@ export default function DashboardScreen() {
         </View>
       </View>
 
+      {/* ── BOUTON RÔLE SPÉCIFIQUE ── */}
+      {userRole === "receptionniste" && (
+        <TouchableOpacity
+          style={[styles.roleBtn, { borderColor: "#1565C0" }]}
+          onPress={() => router.push("/receptionniste")}
+        >
+          <Text style={styles.roleBtnIcon}>🛎️</Text>
+          <View>
+            <Text style={[styles.roleBtnTitle, { color: "#1565C0" }]}>
+              Mon espace Réceptionniste
+            </Text>
+            <Text style={styles.roleBtnSub}>
+              Pointage • État chambres • Propreté
+            </Text>
+          </View>
+          <Text style={[styles.roleBtnArrow, { color: "#1565C0" }]}>→</Text>
+        </TouchableOpacity>
+      )}
+
+      {userRole === "manager" && (
+        <TouchableOpacity
+          style={[styles.roleBtn, { borderColor: "#F57C00" }]}
+          onPress={() => router.push("/manager")}
+        >
+          <Text style={styles.roleBtnIcon}>📊</Text>
+          <View>
+            <Text style={[styles.roleBtnTitle, { color: "#F57C00" }]}>
+              Mon espace Manager
+            </Text>
+            <Text style={styles.roleBtnSub}>
+              Employés • Planning • Pointages
+            </Text>
+          </View>
+          <Text style={[styles.roleBtnArrow, { color: "#F57C00" }]}>→</Text>
+        </TouchableOpacity>
+      )}
+
+      {userRole === "admin" && (
+        <View style={styles.adminBtns}>
+          <TouchableOpacity
+            style={[styles.adminBtn, { borderColor: "#E53935" }]}
+            onPress={() => router.push("/manage-users")}
+          >
+            <Text style={styles.adminBtnIcon}>👥</Text>
+            <Text style={[styles.adminBtnText, { color: "#E53935" }]}>
+              Gérer Users
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminBtn, { borderColor: "#7B1FA2" }]}
+            onPress={() => router.push("/manage-zones")}
+          >
+            <Text style={styles.adminBtnIcon}>🏨</Text>
+            <Text style={[styles.adminBtnText, { color: "#7B1FA2" }]}>
+              Gérer Zones
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.adminBtn, { borderColor: "#F57C00" }]}
+            onPress={() => router.push("/manager")}
+          >
+            <Text style={styles.adminBtnIcon}>📊</Text>
+            <Text style={[styles.adminBtnText, { color: "#F57C00" }]}>
+              Planning
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── CHAMBRES ── */}
       <Text style={styles.sectionTitle}>🛏️ État des Chambres</Text>
       {chambres.length === 0 ? (
         <View style={styles.loadingCard}>
@@ -285,6 +399,28 @@ export default function DashboardScreen() {
                 <Text style={{ opacity: chambre.clim ? 1 : 0.3 }}>❄️</Text>
                 <Text style={{ opacity: chambre.fenetre ? 1 : 0.3 }}>🪟</Text>
               </View>
+              {/* Badge propreté */}
+              {chambre.propre !== undefined && (
+                <View
+                  style={[
+                    styles.propreteTag,
+                    {
+                      backgroundColor: chambre.propre
+                        ? "#2E7D3222"
+                        : "#E5393522",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.propreteText,
+                      { color: chambre.propre ? "#2E7D32" : "#E53935" },
+                    ]}
+                  >
+                    {chambre.propre ? "✅ Propre" : "🧹 Sale"}
+                  </Text>
+                </View>
+              )}
               {chambre.temperature > seuilTemp && (
                 <View style={styles.alertBadge}>
                   <Text style={styles.alertBadgeText}>⚠️ Chaud</Text>
@@ -318,6 +454,7 @@ export default function DashboardScreen() {
         </Text>
       </TouchableOpacity>
 
+      {/* ── ZONES COMMUNES ── */}
       <Text style={styles.sectionTitle}>🏨 Zones Communes</Text>
       {zonesCommunes.length === 0 ? (
         <View style={styles.loadingCard}>
@@ -350,6 +487,7 @@ export default function DashboardScreen() {
           ))}
         </View>
       )}
+
       <View style={{ height: 30 }} />
     </ScrollView>
   );
@@ -368,6 +506,15 @@ const styles = StyleSheet.create({
   headerGreeting: { fontSize: 14, color: "#64B5F6" },
   headerName: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 2 },
   headerDate: { fontSize: 12, color: "#888", marginTop: 2 },
+  roleBadgeSmall: {
+    marginTop: 6,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  roleBadgeText: { fontSize: 11, fontWeight: "bold" },
   avatarImg: {
     width: 48,
     height: 48,
@@ -386,6 +533,7 @@ const styles = StyleSheet.create({
     borderColor: "#64B5F6",
   },
   avatarLetter: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -403,6 +551,40 @@ const styles = StyleSheet.create({
   statIcon: { fontSize: 24, marginBottom: 5 },
   statNumber: { fontSize: 28, fontWeight: "bold", color: "#fff" },
   statLabel: { fontSize: 12, color: "rgba(255,255,255,0.8)", marginTop: 2 },
+
+  roleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 15,
+    marginBottom: 16,
+    backgroundColor: "#1E2D45",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    gap: 12,
+  },
+  roleBtnIcon: { fontSize: 28 },
+  roleBtnTitle: { fontSize: 15, fontWeight: "bold", marginBottom: 2 },
+  roleBtnSub: { fontSize: 11, color: "#888" },
+  roleBtnArrow: { marginLeft: "auto", fontSize: 18, fontWeight: "bold" },
+
+  adminBtns: {
+    flexDirection: "row",
+    marginHorizontal: 15,
+    gap: 10,
+    marginBottom: 16,
+  },
+  adminBtn: {
+    flex: 1,
+    backgroundColor: "#1E2D45",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  adminBtnIcon: { fontSize: 24, marginBottom: 6 },
+  adminBtnText: { fontSize: 11, fontWeight: "bold", textAlign: "center" },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -419,6 +601,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: { color: "#64B5F6", fontSize: 14 },
+
   chambresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -445,7 +628,15 @@ const styles = StyleSheet.create({
   chambreStatus: { fontSize: 12, color: "#ccc", marginBottom: 4 },
   chambreTemp: { fontSize: 12, color: "#64B5F6", marginBottom: 2 },
   chambreHum: { fontSize: 12, color: "#64B5F6", marginBottom: 8 },
-  chambreIcons: { flexDirection: "row", gap: 8 },
+  chambreIcons: { flexDirection: "row", gap: 8, marginBottom: 6 },
+  propreteTag: {
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    alignSelf: "flex-start",
+    marginBottom: 4,
+  },
+  propreteText: { fontSize: 10, fontWeight: "bold" },
   alertBadge: {
     marginTop: 4,
     backgroundColor: "#E53935",
@@ -455,6 +646,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   alertBadgeText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
+
   historyBtn: {
     marginHorizontal: 15,
     marginTop: 20,
@@ -466,6 +658,7 @@ const styles = StyleSheet.create({
     borderColor: "#2A3F5F",
   },
   historyBtnText: { color: "#64B5F6", fontSize: 16, fontWeight: "bold" },
+
   zonesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
