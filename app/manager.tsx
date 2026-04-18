@@ -2,48 +2,50 @@ import { useRouter } from "expo-router";
 import { collection, doc, onSnapshot, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { db } from "../config/firebase";
+import { useApp } from "../context/AppContext";
 
 const SHIFTS = [
   {
     key: "matin",
-    label: "🌅 Équipe Matin",
+    label: "Equipe Matin",
     heure: "06:00 — 14:00",
     color: "#F57C00",
   },
   {
     key: "soir",
-    label: "🌙 Équipe Soir",
+    label: "Equipe Soir",
     heure: "14:00 — 22:00",
     color: "#5C6BC0",
   },
   {
     key: "nuit",
-    label: "🌃 Équipe Nuit",
+    label: "Equipe Nuit",
     heure: "22:00 — 06:00",
     color: "#0288D1",
   },
 ];
 
 const POSTES = [
-  "Femme de ménage",
-  "Réceptionniste",
+  "Femme de menage",
+  "Receptionniste",
   "Cuisinier",
   "Serveur",
-  "Sécurité",
+  "Securite",
   "Maintenance",
 ];
 
 export default function ManagerScreen() {
   const router = useRouter();
+  const { theme, lang } = useApp();
   const [users, setUsers] = useState([]);
   const [pointages, setPointages] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -51,12 +53,74 @@ export default function ManagerScreen() {
   const [modalPoste, setModalPoste] = useState(false);
   const [activeTab, setActiveTab] = useState("employes");
 
+  const lbl = {
+    titre: lang === "ar" ? "المدير" : lang === "en" ? "Manager" : "Manager",
+    retour: lang === "ar" ? "رجوع" : lang === "en" ? "Back" : "Retour",
+    presents: lang === "ar" ? "حاضرون" : lang === "en" ? "Present" : "Presents",
+    absents: lang === "ar" ? "غائبون" : lang === "en" ? "Absent" : "Absents",
+    total: lang === "ar" ? "المجموع" : lang === "en" ? "Total" : "Total",
+    employes:
+      lang === "ar" ? "الموظفون" : lang === "en" ? "Employees" : "Employes",
+    planning:
+      lang === "ar" ? "الجدول" : lang === "en" ? "Planning" : "Planning",
+    pointages:
+      lang === "ar" ? "التوقيت" : lang === "en" ? "Timesheets" : "Pointages",
+    present: lang === "ar" ? "حاضر" : lang === "en" ? "Present" : "Present",
+    absent: lang === "ar" ? "غائب" : lang === "en" ? "Absent" : "Absent",
+    poste: lang === "ar" ? "المنصب" : lang === "en" ? "Position" : "Poste",
+    horaire: lang === "ar" ? "التوقيت" : lang === "en" ? "Schedule" : "Horaire",
+    assignerHoraire:
+      lang === "ar"
+        ? "تعيين التوقيت"
+        : lang === "en"
+          ? "Assign Schedule"
+          : "Assigner un horaire",
+    assignerPoste:
+      lang === "ar"
+        ? "تعيين المنصب"
+        : lang === "en"
+          ? "Assign Position"
+          : "Assigner un poste",
+    annuler: lang === "ar" ? "الغاء" : lang === "en" ? "Cancel" : "Annuler",
+    aucunEmploye:
+      lang === "ar"
+        ? "لا يوجد موظف"
+        : lang === "en"
+          ? "No employee assigned"
+          : "Aucun employe assigne",
+    pointagesJour:
+      lang === "ar"
+        ? "توقيتات اليوم"
+        : lang === "en"
+          ? "Today's timesheets"
+          : "Pointages du jour",
+    aucunPointage:
+      lang === "ar"
+        ? "لا توجد توقيتات"
+        : lang === "en"
+          ? "No timesheets today"
+          : "Aucun pointage aujourd'hui",
+    entree: lang === "ar" ? "دخول" : lang === "en" ? "Entry" : "Entree",
+    sortie: lang === "ar" ? "خروج" : lang === "en" ? "Exit" : "Sortie",
+    encours:
+      lang === "ar" ? "جاري" : lang === "en" ? "In progress" : "En cours...",
+    termine: lang === "ar" ? "منتهي" : lang === "en" ? "Done" : "Termine",
+    duree: lang === "ar" ? "المدة" : lang === "en" ? "Duration" : "Duree",
+    posteNonAssigne:
+      lang === "ar"
+        ? "منصب غير معين"
+        : lang === "en"
+          ? "Position not assigned"
+          : "Poste non assigne",
+  };
+
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "users"), (snap) => {
-      const data = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((u) => u.role !== "admin");
-      setUsers(data);
+      setUsers(
+        snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((u) => u.role !== "admin"),
+      );
     });
     return unsubscribe;
   }, []);
@@ -64,20 +128,25 @@ export default function ManagerScreen() {
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     const unsubscribe = onSnapshot(collection(db, "pointages"), (snap) => {
-      const data = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((p) => p.date === today);
-      setPointages(data);
+      setPointages(
+        snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((p) => p.date === today),
+      );
     });
     return unsubscribe;
   }, []);
 
   const getPointage = (uid) => pointages.find((p) => p.uid === uid);
+  const getShiftInfo = (shift) => SHIFTS.find((s) => s.key === shift);
+  const presentCount = pointages.filter(
+    (p) => p.heureEntree && !p.heureSortie,
+  ).length;
+  const absentCount = users.length - presentCount;
 
   const handleAssignShift = async (uid, shift) => {
     try {
       await setDoc(doc(db, "users", uid), { shift }, { merge: true });
-      Alert.alert("✅ Horaire assigné !", `${shift} assigné avec succès`);
       setModalShift(false);
     } catch (e) {
       Alert.alert("Erreur", "Impossible d'assigner l'horaire");
@@ -87,220 +156,255 @@ export default function ManagerScreen() {
   const handleAssignPoste = async (uid, poste) => {
     try {
       await setDoc(doc(db, "users", uid), { poste }, { merge: true });
-      Alert.alert("✅ Poste assigné !", `${poste} assigné avec succès`);
       setModalPoste(false);
     } catch (e) {
       Alert.alert("Erreur", "Impossible d'assigner le poste");
     }
   };
 
-  const getShiftInfo = (shift) => SHIFTS.find((s) => s.key === shift);
-
-  const presentCount = pointages.filter(
-    (p) => p.heureEntree && !p.heureSortie,
-  ).length;
-  const absentCount = users.length - presentCount;
-
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Retour</Text>
+          <Text style={[styles.backText, { color: theme.accent }]}>
+            ← {lbl.retour}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📊 Manager</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          {lbl.titre}
+        </Text>
         <View style={{ width: 60 }} />
       </View>
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <View style={[styles.statBox, { borderColor: "#2E7D32" }]}>
-          <Text style={[styles.statNum, { color: "#2E7D32" }]}>
-            {presentCount}
-          </Text>
-          <Text style={styles.statLabel}>✅ Présents</Text>
-        </View>
-        <View style={[styles.statBox, { borderColor: "#E53935" }]}>
-          <Text style={[styles.statNum, { color: "#E53935" }]}>
-            {absentCount}
-          </Text>
-          <Text style={styles.statLabel}>❌ Absents</Text>
-        </View>
-        <View style={[styles.statBox, { borderColor: "#64B5F6" }]}>
-          <Text style={[styles.statNum, { color: "#64B5F6" }]}>
-            {users.length}
-          </Text>
-          <Text style={styles.statLabel}>👥 Total</Text>
-        </View>
+        {[
+          [lbl.presents, presentCount, "#2E7D32"],
+          [lbl.absents, absentCount, "#E53935"],
+          [lbl.total, users.length, "#64B5F6"],
+        ].map(([label, val, color], i) => (
+          <View
+            key={i}
+            style={[
+              styles.statBox,
+              { backgroundColor: theme.card, borderColor: color },
+            ]}
+          >
+            <Text style={[styles.statNum, { color }]}>{val}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSub }]}>
+              {label}
+            </Text>
+          </View>
+        ))}
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: theme.card }]}>
         {["employes", "planning", "pointages"].map((tab) => (
           <TouchableOpacity
             key={tab}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            style={[
+              styles.tab,
+              activeTab === tab && { backgroundColor: theme.bg },
+            ]}
             onPress={() => setActiveTab(tab)}
           >
             <Text
               style={[
                 styles.tabText,
-                activeTab === tab && styles.tabTextActive,
+                { color: activeTab === tab ? theme.accent : theme.textSub },
               ]}
             >
               {tab === "employes"
-                ? "👥 Employés"
+                ? lbl.employes
                 : tab === "planning"
-                  ? "📅 Planning"
-                  : "⏱️ Pointages"}
+                  ? lbl.planning
+                  : lbl.pointages}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ── TAB EMPLOYÉS ── */}
-        {activeTab === "employes" && (
-          <View>
-            {users.map((u) => {
-              const ptg = getPointage(u.id);
-              const isPresent = ptg?.heureEntree && !ptg?.heureSortie;
-              const shiftInfo = getShiftInfo(u.shift);
-              return (
-                <View key={u.id} style={styles.employeCard}>
-                  <View style={styles.employeLeft}>
-                    <View
-                      style={[
-                        styles.employeAvatar,
-                        {
-                          backgroundColor: isPresent
-                            ? "#2E7D3233"
-                            : "#E5393533",
-                        },
-                      ]}
-                    >
-                      <Text style={styles.employeAvatarText}>
-                        {(u.nom || "?").charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={styles.employeNom}>
-                        {u.nom || "Sans nom"}
-                      </Text>
-                      <Text style={styles.employePoste}>
-                        {u.poste || "Poste non assigné"}
-                      </Text>
-                      {shiftInfo && (
-                        <Text
-                          style={[
-                            styles.employeShift,
-                            { color: shiftInfo.color },
-                          ]}
-                        >
-                          {shiftInfo.label}
-                        </Text>
-                      )}
-                    </View>
+        {/* EMPLOYES */}
+        {activeTab === "employes" &&
+          users.map((u) => {
+            const ptg = getPointage(u.id);
+            const isPresent = ptg?.heureEntree && !ptg?.heureSortie;
+            const shiftInfo = getShiftInfo(u.shift);
+            return (
+              <View
+                key={u.id}
+                style={[
+                  styles.employeCard,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                ]}
+              >
+                <View style={styles.employeLeft}>
+                  <View
+                    style={[
+                      styles.employeAvatar,
+                      {
+                        backgroundColor: isPresent ? "#2E7D3233" : "#E5393533",
+                      },
+                    ]}
+                  >
+                    <Text style={styles.employeAvatarText}>
+                      {(u.nom || "?").charAt(0).toUpperCase()}
+                    </Text>
                   </View>
-                  <View style={styles.employeRight}>
-                    <View
-                      style={[
-                        styles.presentBadge,
-                        {
-                          backgroundColor: isPresent
-                            ? "#2E7D3222"
-                            : "#E5393522",
-                        },
-                      ]}
+                  <View>
+                    <Text style={[styles.employeNom, { color: theme.text }]}>
+                      {u.nom || "Sans nom"}
+                    </Text>
+                    <Text
+                      style={[styles.employePoste, { color: theme.textSub }]}
                     >
+                      {u.poste || lbl.posteNonAssigne}
+                    </Text>
+                    {shiftInfo && (
                       <Text
                         style={[
-                          styles.presentText,
-                          { color: isPresent ? "#2E7D32" : "#E53935" },
+                          styles.employeShift,
+                          { color: shiftInfo.color },
                         ]}
                       >
-                        {isPresent ? "✅ Présent" : "❌ Absent"}
+                        {shiftInfo.label}
                       </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => {
-                        setSelectedUser(u);
-                        setModalPoste(true);
-                      }}
-                    >
-                      <Text style={styles.actionBtnText}>🏷️ Poste</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => {
-                        setSelectedUser(u);
-                        setModalShift(true);
-                      }}
-                    >
-                      <Text style={styles.actionBtnText}>⏰ Horaire</Text>
-                    </TouchableOpacity>
+                    )}
                   </View>
                 </View>
-              );
-            })}
-          </View>
-        )}
-
-        {/* ── TAB PLANNING ── */}
-        {activeTab === "planning" && (
-          <View>
-            {SHIFTS.map((shift) => {
-              const employes = users.filter((u) => u.shift === shift.key);
-              return (
-                <View
-                  key={shift.key}
-                  style={[styles.shiftCard, { borderLeftColor: shift.color }]}
-                >
-                  <View style={styles.shiftHeader}>
-                    <Text style={[styles.shiftTitle, { color: shift.color }]}>
-                      {shift.label}
-                    </Text>
-                    <Text style={styles.shiftHeure}>{shift.heure}</Text>
-                    <View
+                <View style={styles.employeRight}>
+                  <View
+                    style={[
+                      styles.presentBadge,
+                      {
+                        backgroundColor: isPresent ? "#2E7D3222" : "#E5393522",
+                      },
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.shiftCount,
-                        { backgroundColor: shift.color + "22" },
+                        styles.presentText,
+                        { color: isPresent ? "#2E7D32" : "#E53935" },
+                      ]}
+                    >
+                      {isPresent ? lbl.present : lbl.absent}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionBtn,
+                      { backgroundColor: theme.bg, borderColor: theme.border },
+                    ]}
+                    onPress={() => {
+                      setSelectedUser(u);
+                      setModalPoste(true);
+                    }}
+                  >
+                    <Text
+                      style={[styles.actionBtnText, { color: theme.accent }]}
+                    >
+                      {lbl.poste}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionBtn,
+                      { backgroundColor: theme.bg, borderColor: theme.border },
+                    ]}
+                    onPress={() => {
+                      setSelectedUser(u);
+                      setModalShift(true);
+                    }}
+                  >
+                    <Text
+                      style={[styles.actionBtnText, { color: theme.accent }]}
+                    >
+                      {lbl.horaire}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+
+        {/* PLANNING */}
+        {activeTab === "planning" &&
+          SHIFTS.map((shift) => {
+            const employes = users.filter((u) => u.shift === shift.key);
+            return (
+              <View
+                key={shift.key}
+                style={[
+                  styles.shiftCard,
+                  { backgroundColor: theme.card, borderLeftColor: shift.color },
+                ]}
+              >
+                <View style={styles.shiftHeader}>
+                  <Text style={[styles.shiftTitle, { color: shift.color }]}>
+                    {shift.label}
+                  </Text>
+                  <Text style={[styles.shiftHeure, { color: theme.textSub }]}>
+                    {shift.heure}
+                  </Text>
+                  <View
+                    style={[
+                      styles.shiftCount,
+                      { backgroundColor: shift.color + "22" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.shiftCountText, { color: shift.color }]}
+                    >
+                      {employes.length} pers.
+                    </Text>
+                  </View>
+                </View>
+                {employes.length === 0 ? (
+                  <Text style={[styles.shiftEmpty, { color: theme.textSub }]}>
+                    {lbl.aucunEmploye}
+                  </Text>
+                ) : (
+                  employes.map((e) => (
+                    <View
+                      key={e.id}
+                      style={[
+                        styles.shiftEmploye,
+                        { borderTopColor: theme.border },
                       ]}
                     >
                       <Text
-                        style={[styles.shiftCountText, { color: shift.color }]}
+                        style={[styles.shiftEmployeNom, { color: theme.text }]}
                       >
-                        {employes.length} pers.
+                        {e.nom || "Sans nom"}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.shiftEmployePoste,
+                          { color: theme.textSub },
+                        ]}
+                      >
+                        {e.poste || "—"}
                       </Text>
                     </View>
-                  </View>
-                  {employes.length === 0 ? (
-                    <Text style={styles.shiftEmpty}>Aucun employé assigné</Text>
-                  ) : (
-                    employes.map((e) => (
-                      <View key={e.id} style={styles.shiftEmploye}>
-                        <Text style={styles.shiftEmployeNom}>
-                          {e.nom || "Sans nom"}
-                        </Text>
-                        <Text style={styles.shiftEmployePoste}>
-                          {e.poste || "—"}
-                        </Text>
-                      </View>
-                    ))
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        )}
+                  ))
+                )}
+              </View>
+            );
+          })}
 
-        {/* ── TAB POINTAGES ── */}
+        {/* POINTAGES */}
         {activeTab === "pointages" && (
           <View>
-            <Text style={styles.sectionLabel}>Pointages du jour</Text>
+            <Text style={[styles.sectionLabel, { color: theme.accent }]}>
+              {lbl.pointagesJour}
+            </Text>
             {pointages.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>Aucun pointage aujourd'hui</Text>
+              <View style={[styles.emptyBox, { backgroundColor: theme.card }]}>
+                <Text style={[styles.emptyText, { color: theme.textSub }]}>
+                  {lbl.aucunPointage}
+                </Text>
               </View>
             ) : (
               pointages.map((p) => {
@@ -315,18 +419,21 @@ export default function ManagerScreen() {
                       hour: "2-digit",
                       minute: "2-digit",
                     })
-                  : "En cours...";
+                  : lbl.encours;
                 const isActive = p.heureEntree && !p.heureSortie;
                 return (
                   <View
                     key={p.id}
                     style={[
                       styles.pointageCard,
-                      { borderLeftColor: isActive ? "#2E7D32" : "#64B5F6" },
+                      {
+                        backgroundColor: theme.card,
+                        borderLeftColor: isActive ? "#2E7D32" : "#64B5F6",
+                      },
                     ]}
                   >
                     <View style={styles.pointageTop}>
-                      <Text style={styles.pointageNom}>
+                      <Text style={[styles.pointageNom, { color: theme.text }]}>
                         {p.nom || "Inconnu"}
                       </Text>
                       <View
@@ -345,23 +452,37 @@ export default function ManagerScreen() {
                             { color: isActive ? "#2E7D32" : "#64B5F6" },
                           ]}
                         >
-                          {isActive ? "🟢 Présent" : "✅ Terminé"}
+                          {isActive ? lbl.present : lbl.termine}
                         </Text>
                       </View>
                     </View>
                     <View style={styles.pointageRow}>
-                      <Text style={styles.pointageLabel}>
-                        🟢 Entrée:{" "}
-                        <Text style={styles.pointageVal}>{entree}</Text>
+                      <Text
+                        style={[styles.pointageLabel, { color: theme.textSub }]}
+                      >
+                        {lbl.entree}:{" "}
+                        <Text
+                          style={[styles.pointageVal, { color: theme.text }]}
+                        >
+                          {entree}
+                        </Text>
                       </Text>
-                      <Text style={styles.pointageLabel}>
-                        🔴 Sortie:{" "}
-                        <Text style={styles.pointageVal}>{sortie}</Text>
+                      <Text
+                        style={[styles.pointageLabel, { color: theme.textSub }]}
+                      >
+                        {lbl.sortie}:{" "}
+                        <Text
+                          style={[styles.pointageVal, { color: theme.text }]}
+                        >
+                          {sortie}
+                        </Text>
                       </Text>
                     </View>
                     {p.duree && (
-                      <Text style={styles.pointageDuree}>
-                        ⏱️ Durée: {p.duree}
+                      <Text
+                        style={[styles.pointageDuree, { color: theme.accent }]}
+                      >
+                        {lbl.duree}: {p.duree}
                       </Text>
                     )}
                   </View>
@@ -370,25 +491,30 @@ export default function ManagerScreen() {
             )}
           </View>
         )}
-
         <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Modal Shift */}
       <Modal visible={modalShift} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>⏰ Assigner un horaire</Text>
-            <Text style={styles.modalSub}>{selectedUser?.nom}</Text>
+          <View style={[styles.modalBox, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {lbl.assignerHoraire}
+            </Text>
+            <Text style={[styles.modalSub, { color: theme.textSub }]}>
+              {selectedUser?.nom}
+            </Text>
             {SHIFTS.map((s) => (
               <TouchableOpacity
                 key={s.key}
                 style={[
                   styles.modalOption,
-                  selectedUser?.shift === s.key && {
-                    borderColor: s.color,
-                    borderWidth: 2,
+                  {
+                    backgroundColor: theme.bg,
+                    borderColor:
+                      selectedUser?.shift === s.key ? s.color : theme.border,
                   },
+                  selectedUser?.shift === s.key && { borderWidth: 2 },
                 ]}
                 onPress={() => handleAssignShift(selectedUser.id, s.key)}
               >
@@ -396,7 +522,11 @@ export default function ManagerScreen() {
                   <Text style={[styles.modalOptionTitle, { color: s.color }]}>
                     {s.label}
                   </Text>
-                  <Text style={styles.modalOptionSub}>{s.heure}</Text>
+                  <Text
+                    style={[styles.modalOptionSub, { color: theme.textSub }]}
+                  >
+                    {s.heure}
+                  </Text>
                 </View>
                 {selectedUser?.shift === s.key && (
                   <Text style={{ color: s.color, fontSize: 18 }}>✓</Text>
@@ -404,10 +534,10 @@ export default function ManagerScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.cancelBtn}
+              style={[styles.cancelBtn, { backgroundColor: "#E5393522" }]}
               onPress={() => setModalShift(false)}
             >
-              <Text style={styles.cancelText}>Annuler</Text>
+              <Text style={styles.cancelText}>{lbl.annuler}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -416,25 +546,33 @@ export default function ManagerScreen() {
       {/* Modal Poste */}
       <Modal visible={modalPoste} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>🏷️ Assigner un poste</Text>
-            <Text style={styles.modalSub}>{selectedUser?.nom}</Text>
+          <View style={[styles.modalBox, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {lbl.assignerPoste}
+            </Text>
+            <Text style={[styles.modalSub, { color: theme.textSub }]}>
+              {selectedUser?.nom}
+            </Text>
             {POSTES.map((p) => (
               <TouchableOpacity
                 key={p}
                 style={[
                   styles.modalOption,
-                  selectedUser?.poste === p && {
-                    borderColor: "#64B5F6",
-                    borderWidth: 2,
+                  {
+                    backgroundColor: theme.bg,
+                    borderColor:
+                      selectedUser?.poste === p ? "#64B5F6" : theme.border,
                   },
+                  selectedUser?.poste === p && { borderWidth: 2 },
                 ]}
                 onPress={() => handleAssignPoste(selectedUser.id, p)}
               >
                 <Text
                   style={[
                     styles.modalOptionTitle,
-                    { color: selectedUser?.poste === p ? "#64B5F6" : "#fff" },
+                    {
+                      color: selectedUser?.poste === p ? "#64B5F6" : theme.text,
+                    },
                   ]}
                 >
                   {p}
@@ -445,10 +583,10 @@ export default function ManagerScreen() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.cancelBtn}
+              style={[styles.cancelBtn, { backgroundColor: "#E5393522" }]}
               onPress={() => setModalPoste(false)}
             >
-              <Text style={styles.cancelText}>Annuler</Text>
+              <Text style={styles.cancelText}>{lbl.annuler}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -458,7 +596,7 @@ export default function ManagerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -466,48 +604,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
+    borderBottomWidth: 1,
   },
-  backText: { color: "#64B5F6", fontSize: 16 },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+  backText: { fontSize: 16 },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 15,
     gap: 10,
+    marginTop: 16,
     marginBottom: 4,
   },
   statBox: {
     flex: 1,
-    backgroundColor: "#1E2D45",
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
     borderWidth: 1,
   },
   statNum: { fontSize: 24, fontWeight: "bold" },
-  statLabel: { fontSize: 11, color: "#888", marginTop: 2 },
+  statLabel: { fontSize: 11, marginTop: 2 },
   tabBar: {
     flexDirection: "row",
     marginHorizontal: 15,
     marginTop: 16,
     marginBottom: 4,
-    backgroundColor: "#1E2D45",
     borderRadius: 12,
     padding: 4,
   },
   tab: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 10 },
-  tabActive: { backgroundColor: "#0A1628" },
-  tabText: { fontSize: 12, color: "#888" },
-  tabTextActive: { color: "#64B5F6", fontWeight: "bold" },
+  tabText: { fontSize: 12 },
   content: { flex: 1, padding: 15 },
   employeCard: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#1E2D45",
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
   employeLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
   employeAvatar: {
@@ -518,28 +652,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   employeAvatarText: { fontSize: 18, fontWeight: "bold", color: "#fff" },
-  employeNom: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 2,
-  },
-  employePoste: { fontSize: 11, color: "#888", marginBottom: 2 },
+  employeNom: { fontSize: 14, fontWeight: "bold", marginBottom: 2 },
+  employePoste: { fontSize: 11, marginBottom: 2 },
   employeShift: { fontSize: 11, fontWeight: "bold" },
   employeRight: { alignItems: "flex-end", gap: 4 },
   presentBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   presentText: { fontSize: 11, fontWeight: "bold" },
   actionBtn: {
-    backgroundColor: "#0A1628",
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
-  actionBtnText: { fontSize: 11, color: "#64B5F6" },
+  actionBtnText: { fontSize: 11 },
   shiftCard: {
-    backgroundColor: "#1E2D45",
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
@@ -552,34 +678,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   shiftTitle: { fontSize: 15, fontWeight: "bold", flex: 1 },
-  shiftHeure: { fontSize: 11, color: "#888" },
+  shiftHeure: { fontSize: 11 },
   shiftCount: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   shiftCountText: { fontSize: 11, fontWeight: "bold" },
-  shiftEmpty: { color: "#555", fontSize: 12, fontStyle: "italic" },
+  shiftEmpty: { fontSize: 12, fontStyle: "italic" },
   shiftEmploye: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: "#2A3F5F",
   },
-  shiftEmployeNom: { color: "#fff", fontSize: 13 },
-  shiftEmployePoste: { color: "#888", fontSize: 12 },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#64B5F6",
-    marginBottom: 12,
-  },
-  emptyBox: {
-    backgroundColor: "#1E2D45",
-    borderRadius: 14,
-    padding: 30,
-    alignItems: "center",
-  },
-  emptyText: { color: "#888", fontSize: 14 },
+  shiftEmployeNom: { fontSize: 13 },
+  shiftEmployePoste: { fontSize: 12 },
+  sectionLabel: { fontSize: 16, fontWeight: "bold", marginBottom: 12 },
+  emptyBox: { borderRadius: 14, padding: 30, alignItems: "center" },
+  emptyText: { fontSize: 14 },
   pointageCard: {
-    backgroundColor: "#1E2D45",
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
@@ -591,52 +705,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  pointageNom: { fontSize: 14, fontWeight: "bold", color: "#fff" },
+  pointageNom: { fontSize: 14, fontWeight: "bold" },
   pointageStatus: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   pointageStatusText: { fontSize: 11, fontWeight: "bold" },
   pointageRow: { flexDirection: "row", justifyContent: "space-between" },
-  pointageLabel: { fontSize: 12, color: "#888" },
-  pointageVal: { color: "#fff", fontWeight: "bold" },
-  pointageDuree: { fontSize: 12, color: "#64B5F6", marginTop: 4 },
+  pointageLabel: { fontSize: 12 },
+  pointageVal: { fontWeight: "bold" },
+  pointageDuree: { fontSize: 12, marginTop: 4 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "flex-end",
   },
-  modalBox: {
-    backgroundColor: "#1E2D45",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-  },
+  modalBox: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
     textAlign: "center",
     marginBottom: 4,
   },
-  modalSub: {
-    fontSize: 13,
-    color: "#888",
-    textAlign: "center",
-    marginBottom: 20,
-  },
+  modalSub: { fontSize: 13, textAlign: "center", marginBottom: 20 },
   modalOption: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#0A1628",
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
   modalOptionTitle: { fontSize: 14, fontWeight: "bold" },
-  modalOptionSub: { fontSize: 11, color: "#888", marginTop: 2 },
+  modalOptionSub: { fontSize: 11, marginTop: 2 },
   cancelBtn: {
-    backgroundColor: "#E5393522",
     borderRadius: 12,
     padding: 14,
     alignItems: "center",

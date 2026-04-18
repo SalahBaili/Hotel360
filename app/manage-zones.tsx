@@ -3,18 +3,19 @@ import { useRouter } from "expo-router";
 import { collection, doc, onSnapshot, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { db } from "../config/firebase";
+import { useApp } from "../context/AppContext";
 
 const ZONES_DEFAULT = [
   {
@@ -22,7 +23,7 @@ const ZONES_DEFAULT = [
     nom: "Gym",
     icone: "🏋️",
     horaires: "06:00 — 22:00",
-    description: "Salle de sport équipée avec machines cardio et musculation.",
+    description: "Salle de sport equipee avec machines cardio et musculation.",
     capacite: 30,
   },
   {
@@ -38,7 +39,7 @@ const ZONES_DEFAULT = [
     nom: "Piscine",
     icone: "🏊",
     horaires: "08:00 — 20:00",
-    description: "Piscine extérieure chauffée avec vue sur la Méditerranée.",
+    description: "Piscine exterieure chauffee avec vue sur la Mediterranee.",
     capacite: 50,
   },
   {
@@ -46,15 +47,15 @@ const ZONES_DEFAULT = [
     nom: "Restaurant",
     icone: "🍽️",
     horaires: "07:00 — 23:00",
-    description: "Restaurant gastronomique tunisien et méditerranéen.",
+    description: "Restaurant gastronomique tunisien et mediterraneen.",
     capacite: 80,
   },
   {
     key: "salle-reunion",
-    nom: "Salle de Réunion",
+    nom: "Salle de Reunion",
     icone: "📊",
     horaires: "08:00 — 20:00",
-    description: "Salle équipée pour événements professionnels.",
+    description: "Salle equipee pour evenements professionnels.",
     capacite: 30,
   },
   {
@@ -62,7 +63,7 @@ const ZONES_DEFAULT = [
     nom: "Spa",
     icone: "💆",
     horaires: "09:00 — 21:00",
-    description: "Espace bien-être avec massages, hammam et jacuzzi.",
+    description: "Espace bien-etre avec massages, hammam et jacuzzi.",
     capacite: 10,
   },
 ];
@@ -84,12 +85,12 @@ const uploadToImgur = async (uri: string): Promise<string> => {
   });
   const data = await response.json();
   if (data.success) return data.data.link;
-  throw new Error("Upload échoué");
+  throw new Error("Upload echoue");
 };
 
 const getNomKey = (nom) => {
   if (!nom) return "";
-  const normalized = nom
+  const n = nom
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -98,28 +99,24 @@ const getNomKey = (nom) => {
     gym: "gym",
     "salle-de-sport": "gym",
     lobby: "lobby",
-    reception: "lobby",
     piscine: "piscine",
-    pool: "piscine",
     restaurant: "restaurant",
     "salle-de-reunion": "salle-reunion",
     "salle-reunion": "salle-reunion",
-    salle: "salle-reunion",
     spa: "spa",
   };
-  return map[normalized] || normalized;
+  return map[n] || n;
 };
 
 export default function ManageZonesScreen() {
   const router = useRouter();
+  const { theme, lang } = useApp();
   const [zones, setZones] = useState([]);
   const [selectedZone, setSelectedZone] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [activeEditTab, setActiveEditTab] = useState("infos");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
-
-  // Infos générales
   const [editNom, setEditNom] = useState("");
   const [editHoraires, setEditHoraires] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -130,16 +127,96 @@ export default function ManageZonesScreen() {
     { uri: "", uploaded: true },
     { uri: "", uploaded: true },
   ]);
-
-  // Calendrier
   const [editCalendrier, setEditCalendrier] = useState([]);
-
-  // Menu restaurant
   const [editMenu, setEditMenu] = useState([
-    { repas: "🌅 Petit déjeuner", items: ["", "", "", ""] },
-    { repas: "☀️ Déjeuner", items: ["", "", "", ""] },
-    { repas: "🌙 Dîner", items: ["", "", "", ""] },
+    { repas: "Petit dejeuner", items: ["", "", "", ""] },
+    { repas: "Dejeuner", items: ["", "", "", ""] },
+    { repas: "Diner", items: ["", "", "", ""] },
   ]);
+
+  const lbl = {
+    titre:
+      lang === "ar"
+        ? "ادارة المناطق"
+        : lang === "en"
+          ? "Manage Areas"
+          : "Gerer les Zones",
+    retour: lang === "ar" ? "رجوع" : lang === "en" ? "Back" : "Retour",
+    modifier: lang === "ar" ? "تعديل" : lang === "en" ? "Edit" : "Modifier",
+    occuper: lang === "ar" ? "شغّل" : lang === "en" ? "Occupy" : "Occuper",
+    liberer: lang === "ar" ? "اخلِ" : lang === "en" ? "Free" : "Liberer",
+    occupe: lang === "ar" ? "مشغول" : lang === "en" ? "Occupied" : "Occupe",
+    libre: lang === "ar" ? "حر" : lang === "en" ? "Free" : "Libre",
+    capacite: lang === "ar" ? "السعة" : lang === "en" ? "Capacity" : "Capacite",
+    presents:
+      lang === "ar" ? "الحاضرون" : lang === "en" ? "Present" : "Presents",
+    photos: lang === "ar" ? "الصور" : lang === "en" ? "Photos" : "Photos",
+    cours: lang === "ar" ? "الدروس" : lang === "en" ? "Classes" : "Cours",
+    menu: lang === "ar" ? "القائمة" : lang === "en" ? "Menu" : "Menu",
+    infos: lang === "ar" ? "المعلومات" : lang === "en" ? "Info" : "Infos",
+    calendrier:
+      lang === "ar" ? "الجدول" : lang === "en" ? "Schedule" : "Calendrier",
+    icone: lang === "ar" ? "الايقونة" : lang === "en" ? "Icon" : "Icone",
+    nom: lang === "ar" ? "الاسم" : lang === "en" ? "Name" : "Nom",
+    horaires: lang === "ar" ? "المواعيد" : lang === "en" ? "Hours" : "Horaires",
+    description:
+      lang === "ar" ? "الوصف" : lang === "en" ? "Description" : "Description",
+    capaciteMax:
+      lang === "ar"
+        ? "السعة القصوى"
+        : lang === "en"
+          ? "Max Capacity"
+          : "Capacite maximale",
+    enregistrer:
+      lang === "ar"
+        ? "حفظ التعديلات"
+        : lang === "en"
+          ? "Save all changes"
+          : "Enregistrer toutes les modifications",
+    annuler: lang === "ar" ? "الغاء" : lang === "en" ? "Cancel" : "Annuler",
+    ajouterCours:
+      lang === "ar"
+        ? "+ اضافة درس"
+        : lang === "en"
+          ? "+ Add class"
+          : "+ Ajouter un cours",
+    jour: lang === "ar" ? "اليوم" : lang === "en" ? "Day" : "Jour",
+    heure: lang === "ar" ? "الوقت" : lang === "en" ? "Time" : "Heure",
+    nomCours:
+      lang === "ar"
+        ? "اسم الدرس"
+        : lang === "en"
+          ? "Class name"
+          : "Nom du cours",
+    entraineur:
+      lang === "ar" ? "المدرب" : lang === "en" ? "Trainer" : "Entraineur",
+    placesTotal:
+      lang === "ar"
+        ? "المقاعد الكلية"
+        : lang === "en"
+          ? "Total seats"
+          : "Places total",
+    placesRestantes:
+      lang === "ar"
+        ? "المقاعد المتبقية"
+        : lang === "en"
+          ? "Remaining"
+          : "Places restantes",
+    choisirPhoto:
+      lang === "ar"
+        ? "اختر من المعرض"
+        : lang === "en"
+          ? "Choose from gallery"
+          : "Choisir depuis la galerie",
+    changer: lang === "ar" ? "تغيير" : lang === "en" ? "Change" : "Changer",
+    supprimer: lang === "ar" ? "حذف" : lang === "en" ? "Delete" : "Supprimer",
+    sauvegardeOk:
+      lang === "ar"
+        ? "تم الحفظ"
+        : lang === "en"
+          ? "Saved!"
+          : "Zone mise a jour !",
+  };
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "zones"), (snap) => {
@@ -170,39 +247,32 @@ export default function ManageZonesScreen() {
       { uri: zone.photos?.[1] || "", uploaded: true },
       { uri: zone.photos?.[2] || "", uploaded: true },
     ]);
-
-    // Calendrier
-    if (zone.calendrier && zone.calendrier.length > 0) {
-      setEditCalendrier(zone.calendrier);
-    } else {
-      setEditCalendrier([
-        {
-          jour: "",
-          heure: "",
-          cours: "",
-          entraineur: "",
-          places: "10",
-          restantes: "10",
-        },
-      ]);
-    }
-
-    // Menu
-    if (zone.menuJour && zone.menuJour.length > 0) {
-      setEditMenu(
-        zone.menuJour.map((r) => ({
-          repas: r.repas,
-          items: [...r.items, "", "", ""].slice(0, 4),
-        })),
-      );
-    } else {
-      setEditMenu([
-        { repas: "🌅 Petit déjeuner", items: ["", "", "", ""] },
-        { repas: "☀️ Déjeuner", items: ["", "", "", ""] },
-        { repas: "🌙 Dîner", items: ["", "", "", ""] },
-      ]);
-    }
-
+    setEditCalendrier(
+      zone.calendrier?.length > 0
+        ? zone.calendrier
+        : [
+            {
+              jour: "",
+              heure: "",
+              cours: "",
+              entraineur: "",
+              places: "10",
+              restantes: "10",
+            },
+          ],
+    );
+    setEditMenu(
+      zone.menuJour?.length > 0
+        ? zone.menuJour.map((r) => ({
+            repas: r.repas,
+            items: [...r.items, "", "", ""].slice(0, 4),
+          }))
+        : [
+            { repas: "Petit dejeuner", items: ["", "", "", ""] },
+            { repas: "Dejeuner", items: ["", "", "", ""] },
+            { repas: "Diner", items: ["", "", "", ""] },
+          ],
+    );
     setActiveEditTab("infos");
     setModalVisible(true);
   };
@@ -210,11 +280,11 @@ export default function ManageZonesScreen() {
   const pickImage = async (index: number) => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
+      Alert.alert("Permission refusee");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.7,
@@ -232,8 +302,7 @@ export default function ManageZonesScreen() {
     setEditPhotos(newPhotos);
   };
 
-  // ── Calendrier helpers ──
-  const addCours = () => {
+  const addCours = () =>
     setEditCalendrier([
       ...editCalendrier,
       {
@@ -245,26 +314,16 @@ export default function ManageZonesScreen() {
         restantes: "10",
       },
     ]);
-  };
-
-  const removeCours = (index: number) => {
-    setEditCalendrier(editCalendrier.filter((_, i) => i !== index));
-  };
-
-  const updateCours = (index: number, field: string, value: string) => {
+  const removeCours = (i: number) =>
+    setEditCalendrier(editCalendrier.filter((_, idx) => idx !== i));
+  const updateCours = (i: number, field: string, value: string) => {
     const updated = [...editCalendrier];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[i] = { ...updated[i], [field]: value };
     setEditCalendrier(updated);
   };
-
-  // ── Menu helpers ──
-  const updateMenuItem = (
-    repasIndex: number,
-    itemIndex: number,
-    value: string,
-  ) => {
+  const updateMenuItem = (ri: number, ii: number, value: string) => {
     const updated = [...editMenu];
-    updated[repasIndex].items[itemIndex] = value;
+    updated[ri].items[ii] = value;
     setEditMenu(updated);
   };
 
@@ -274,21 +333,19 @@ export default function ManageZonesScreen() {
     try {
       const zoneKey = selectedZone.id || selectedZone.key;
       const finalPhotos: string[] = [];
-
       for (let i = 0; i < editPhotos.length; i++) {
         const photo = editPhotos[i];
         if (!photo.uri) continue;
         if (!photo.uploaded) {
-          setUploadProgress(`📤 Upload photo ${i + 1}/3...`);
+          setUploadProgress(`Upload photo ${i + 1}/3...`);
           const url = await uploadToImgur(photo.uri);
           finalPhotos.push(url);
         } else {
           finalPhotos.push(photo.uri);
         }
       }
-
-      setUploadProgress("💾 Sauvegarde...");
-
+      setUploadProgress("Sauvegarde...");
+      const zoneKey2 = getNomKey(editNom) || selectedZone.key;
       const dataToSave: any = {
         nom: editNom,
         horaires: editHoraires,
@@ -299,9 +356,6 @@ export default function ManageZonesScreen() {
         occupee: selectedZone.occupee || false,
         personnes: selectedZone.personnes || 0,
       };
-
-      // Calendrier
-      const zoneKey2 = getNomKey(editNom) || selectedZone.key;
       if (HAS_CALENDRIER.includes(zoneKey2)) {
         dataToSave.calendrier = editCalendrier.map((c) => ({
           jour: c.jour || "",
@@ -312,23 +366,16 @@ export default function ManageZonesScreen() {
           restantes: parseInt(String(c.restantes)) || 10,
         }));
       }
-
-      // Menu restaurant
       if (HAS_MENU.includes(zoneKey2)) {
         dataToSave.menuJour = editMenu.map((r) => ({
           repas: r.repas,
           items: r.items.filter(Boolean),
         }));
       }
-
       await setDoc(doc(db, "zones", zoneKey), dataToSave, { merge: true });
-      Alert.alert(
-        "✅ Zone mise à jour !",
-        `${editNom} sauvegardée avec succès.`,
-      );
+      Alert.alert(lbl.sauvegardeOk);
       setModalVisible(false);
     } catch (e) {
-      console.log(e);
       Alert.alert("Erreur", "Impossible de sauvegarder.");
     } finally {
       setUploading(false);
@@ -365,24 +412,41 @@ export default function ManageZonesScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Retour</Text>
+          <Text style={[styles.backText, { color: theme.accent }]}>
+            ← {lbl.retour}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🏨 Gérer les Zones</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          {lbl.titre}
+        </Text>
         <View style={{ width: 60 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} style={styles.list}>
         {zones.map((zone, i) => (
-          <View key={i} style={styles.zoneCard}>
+          <View
+            key={i}
+            style={[
+              styles.zoneCard,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
             <View style={styles.zoneTop}>
               <Text style={styles.zoneIconBig}>{zone.icone}</Text>
               <View style={styles.zoneInfo}>
-                <Text style={styles.zoneName}>{zone.nom}</Text>
-                <Text style={styles.zoneHoraires}>🕐 {zone.horaires}</Text>
-                <Text style={styles.zoneDesc} numberOfLines={2}>
+                <Text style={[styles.zoneName, { color: theme.text }]}>
+                  {zone.nom}
+                </Text>
+                <Text style={[styles.zoneHoraires, { color: theme.textSub }]}>
+                  🕐 {zone.horaires}
+                </Text>
+                <Text
+                  style={[styles.zoneDesc, { color: theme.textSub }]}
+                  numberOfLines={2}
+                >
                   {zone.description}
                 </Text>
               </View>
@@ -398,31 +462,37 @@ export default function ManageZonesScreen() {
                     { color: zone.occupee ? "#E53935" : "#2E7D32" },
                   ]}
                 >
-                  {zone.occupee ? "🔴 Occupé" : "🟢 Libre"}
+                  {zone.occupee ? "🔴 " + lbl.occupe : "🟢 " + lbl.libre}
                 </Text>
               </View>
             </View>
 
-            <View style={styles.zoneStats}>
-              <View style={styles.zoneStat}>
-                <Text style={styles.zoneStatLabel}>Capacité</Text>
-                <Text style={styles.zoneStatVal}>{zone.capacite || "—"}</Text>
-              </View>
-              <View style={styles.zoneStat}>
-                <Text style={styles.zoneStatLabel}>Présents</Text>
-                <Text style={[styles.zoneStatVal, { color: "#F57C00" }]}>
-                  {zone.personnes || 0}
-                </Text>
-              </View>
-              <View style={styles.zoneStat}>
-                <Text style={styles.zoneStatLabel}>Photos</Text>
-                <Text style={styles.zoneStatVal}>
-                  {zone.photos?.filter(Boolean).length || 0}/3
-                </Text>
-              </View>
+            <View style={[styles.zoneStats, { backgroundColor: theme.bg }]}>
+              {[
+                [lbl.capacite, zone.capacite || "—", theme.text],
+                [lbl.presents, zone.personnes || 0, "#F57C00"],
+                [
+                  lbl.photos,
+                  (zone.photos?.filter(Boolean).length || 0) + "/3",
+                  theme.text,
+                ],
+              ].map(([label, val, color], j) => (
+                <View key={j} style={styles.zoneStat}>
+                  <Text
+                    style={[styles.zoneStatLabel, { color: theme.textSub }]}
+                  >
+                    {label}
+                  </Text>
+                  <Text style={[styles.zoneStatVal, { color }]}>{val}</Text>
+                </View>
+              ))}
               {HAS_CALENDRIER.includes(zone.key) && (
                 <View style={styles.zoneStat}>
-                  <Text style={styles.zoneStatLabel}>Cours</Text>
+                  <Text
+                    style={[styles.zoneStatLabel, { color: theme.textSub }]}
+                  >
+                    {lbl.cours}
+                  </Text>
                   <Text style={[styles.zoneStatVal, { color: "#64B5F6" }]}>
                     {zone.calendrier?.length || 0}
                   </Text>
@@ -430,7 +500,11 @@ export default function ManageZonesScreen() {
               )}
               {HAS_MENU.includes(zone.key) && (
                 <View style={styles.zoneStat}>
-                  <Text style={styles.zoneStatLabel}>Menu</Text>
+                  <Text
+                    style={[styles.zoneStatLabel, { color: theme.textSub }]}
+                  >
+                    {lbl.menu}
+                  </Text>
                   <Text style={[styles.zoneStatVal, { color: "#C9A96E" }]}>
                     {zone.menuJour ? "✅" : "❌"}
                   </Text>
@@ -456,10 +530,18 @@ export default function ManageZonesScreen() {
 
             <View style={styles.zoneActions}>
               <TouchableOpacity
-                style={styles.editBtn}
+                style={[
+                  styles.editBtn,
+                  {
+                    borderColor: theme.accent,
+                    backgroundColor: theme.accent + "11",
+                  },
+                ]}
                 onPress={() => openEdit(zone)}
               >
-                <Text style={styles.editBtnText}>✏️ Modifier</Text>
+                <Text style={[styles.editBtnText, { color: theme.accent }]}>
+                  {lbl.modifier}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -477,7 +559,7 @@ export default function ManageZonesScreen() {
                     { color: zone.occupee ? "#E53935" : "#2E7D32" },
                   ]}
                 >
-                  {zone.occupee ? "🔓 Libérer" : "🔒 Occuper"}
+                  {zone.occupee ? "🔓 " + lbl.liberer : "🔒 " + lbl.occuper}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -486,126 +568,141 @@ export default function ManageZonesScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ── MODAL ÉDITION ── */}
+      {/* MODAL EDITION */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
+          <View style={[styles.modalBox, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>✏️ {selectedZone?.nom}</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                {selectedZone?.nom}
+              </Text>
               <TouchableOpacity
                 onPress={() => !uploading && setModalVisible(false)}
               >
-                <Text style={styles.modalClose}>✕</Text>
+                <Text style={[styles.modalClose, { color: theme.textSub }]}>
+                  ✕
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Tabs édition */}
-            <View style={styles.editTabBar}>
+            <View style={[styles.editTabBar, { backgroundColor: theme.bg }]}>
               {editTabs.map((tab) => (
                 <TouchableOpacity
                   key={tab}
                   style={[
                     styles.editTab,
-                    activeEditTab === tab && styles.editTabActive,
+                    activeEditTab === tab && { backgroundColor: theme.card },
                   ]}
                   onPress={() => setActiveEditTab(tab)}
                 >
                   <Text
                     style={[
                       styles.editTabText,
-                      activeEditTab === tab && styles.editTabTextActive,
+                      {
+                        color:
+                          activeEditTab === tab ? theme.accent : theme.textSub,
+                      },
+                      activeEditTab === tab && { fontWeight: "bold" },
                     ]}
                   >
                     {tab === "infos"
-                      ? "ℹ️ Infos"
+                      ? lbl.infos
                       : tab === "photos"
-                        ? "📸 Photos"
+                        ? lbl.photos
                         : tab === "calendrier"
-                          ? "📅 Calendrier"
-                          : "🍽️ Menu"}
+                          ? lbl.calendrier
+                          : lbl.menu}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* ── TAB INFOS ── */}
+              {/* INFOS */}
               {activeEditTab === "infos" && (
                 <View>
-                  <Text style={styles.fieldLabel}>Icône</Text>
+                  {[
+                    [lbl.icone, "editIcone", editIcone, setEditIcone, "Ex: 🏋️"],
+                    [lbl.nom, "editNom", editNom, setEditNom, "Ex: Gym"],
+                    [
+                      lbl.horaires,
+                      "editHoraires",
+                      editHoraires,
+                      setEditHoraires,
+                      "Ex: 06:00 — 22:00",
+                    ],
+                    [
+                      lbl.capaciteMax,
+                      "editCapacite",
+                      editCapacite,
+                      setEditCapacite,
+                      "Ex: 30",
+                      "numeric",
+                    ],
+                  ].map(([label, _, value, setter, placeholder, kbType], i) => (
+                    <View key={i}>
+                      <Text
+                        style={[styles.fieldLabel, { color: theme.accent }]}
+                      >
+                        {label}
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.fieldInput,
+                          {
+                            backgroundColor: theme.bg,
+                            color: theme.text,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                        value={value as string}
+                        onChangeText={setter as any}
+                        placeholder={placeholder as string}
+                        placeholderTextColor={theme.textSub}
+                        keyboardType={(kbType as any) || "default"}
+                      />
+                    </View>
+                  ))}
+                  <Text style={[styles.fieldLabel, { color: theme.accent }]}>
+                    {lbl.description}
+                  </Text>
                   <TextInput
-                    style={styles.fieldInput}
-                    value={editIcone}
-                    onChangeText={setEditIcone}
-                    placeholder="Ex: 🏋️"
-                    placeholderTextColor="#555"
-                  />
-                  <Text style={styles.fieldLabel}>Nom</Text>
-                  <TextInput
-                    style={styles.fieldInput}
-                    value={editNom}
-                    onChangeText={setEditNom}
-                    placeholder="Ex: Gym"
-                    placeholderTextColor="#555"
-                  />
-                  <Text style={styles.fieldLabel}>Horaires</Text>
-                  <TextInput
-                    style={styles.fieldInput}
-                    value={editHoraires}
-                    onChangeText={setEditHoraires}
-                    placeholder="Ex: 06:00 — 22:00"
-                    placeholderTextColor="#555"
-                  />
-                  <Text style={styles.fieldLabel}>Description</Text>
-                  <TextInput
-                    style={[styles.fieldInput, styles.fieldTextarea]}
+                    style={[
+                      styles.fieldInput,
+                      styles.fieldTextarea,
+                      {
+                        backgroundColor: theme.bg,
+                        color: theme.text,
+                        borderColor: theme.border,
+                      },
+                    ]}
                     value={editDescription}
                     onChangeText={setEditDescription}
                     placeholder="Description..."
-                    placeholderTextColor="#555"
+                    placeholderTextColor={theme.textSub}
                     multiline
                     numberOfLines={3}
-                  />
-                  <Text style={styles.fieldLabel}>Capacité maximale</Text>
-                  <TextInput
-                    style={styles.fieldInput}
-                    value={editCapacite}
-                    onChangeText={setEditCapacite}
-                    placeholder="Ex: 30"
-                    placeholderTextColor="#555"
-                    keyboardType="numeric"
                   />
                 </View>
               )}
 
-              {/* ── TAB PHOTOS ── */}
+              {/* PHOTOS */}
               {activeEditTab === "photos" && (
                 <View>
-                  <Text style={styles.uploadHint}>
-                    📷 Photos depuis votre téléphone — uploadées automatiquement
-                    ☁️
-                  </Text>
                   {[0, 1, 2].map((index) => (
-                    <View key={index} style={styles.photoBlock}>
-                      <View style={styles.photoBlockHeader}>
-                        <Text style={styles.photoNum}>Photo {index + 1}</Text>
-                        {!editPhotos[index].uploaded &&
-                          editPhotos[index].uri && (
-                            <View style={styles.newBadge}>
-                              <Text style={styles.newBadgeText}>
-                                ✨ NOUVELLE
-                              </Text>
-                            </View>
-                          )}
-                        {editPhotos[index].uploaded &&
-                          editPhotos[index].uri && (
-                            <View style={styles.savedBadge}>
-                              <Text style={styles.savedBadgeText}>
-                                ☁️ Sauvegardée
-                              </Text>
-                            </View>
-                          )}
-                      </View>
+                    <View
+                      key={index}
+                      style={[
+                        styles.photoBlock,
+                        {
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.photoNum, { color: theme.accent }]}>
+                        Photo {index + 1}
+                      </Text>
                       {editPhotos[index].uri ? (
                         <View>
                           <Image
@@ -614,11 +711,19 @@ export default function ManageZonesScreen() {
                           />
                           <View style={styles.photoActions}>
                             <TouchableOpacity
-                              style={styles.photoChangeBtn}
+                              style={[
+                                styles.photoChangeBtn,
+                                { borderColor: theme.accent },
+                              ]}
                               onPress={() => pickImage(index)}
                             >
-                              <Text style={styles.photoChangeBtnText}>
-                                🔄 Changer
+                              <Text
+                                style={[
+                                  styles.photoChangeBtnText,
+                                  { color: theme.accent },
+                                ]}
+                              >
+                                {lbl.changer}
                               </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -626,19 +731,27 @@ export default function ManageZonesScreen() {
                               onPress={() => removePhoto(index)}
                             >
                               <Text style={styles.photoDeleteBtnText}>
-                                🗑️ Supprimer
+                                {lbl.supprimer}
                               </Text>
                             </TouchableOpacity>
                           </View>
                         </View>
                       ) : (
                         <TouchableOpacity
-                          style={styles.pickBtn}
+                          style={[
+                            styles.pickBtn,
+                            { borderColor: theme.border },
+                          ]}
                           onPress={() => pickImage(index)}
                         >
                           <Text style={styles.pickBtnIcon}>📷</Text>
-                          <Text style={styles.pickBtnText}>
-                            Choisir depuis la galerie
+                          <Text
+                            style={[
+                              styles.pickBtnText,
+                              { color: theme.textSub },
+                            ]}
+                          >
+                            {lbl.choisirPhoto}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -647,16 +760,26 @@ export default function ManageZonesScreen() {
                 </View>
               )}
 
-              {/* ── TAB CALENDRIER ── */}
+              {/* CALENDRIER */}
               {activeEditTab === "calendrier" && (
                 <View>
-                  <Text style={styles.sectionHint}>
-                    Gérez le programme des activités de cette zone
-                  </Text>
                   {editCalendrier.map((cours, i) => (
-                    <View key={i} style={styles.coursEditCard}>
+                    <View
+                      key={i}
+                      style={[
+                        styles.coursEditCard,
+                        {
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
                       <View style={styles.coursEditHeader}>
-                        <Text style={styles.coursEditNum}>Cours {i + 1}</Text>
+                        <Text
+                          style={[styles.coursEditNum, { color: theme.accent }]}
+                        >
+                          Cours {i + 1}
+                        </Text>
                         <TouchableOpacity
                           onPress={() => removeCours(i)}
                           style={styles.removeBtn}
@@ -666,94 +789,187 @@ export default function ManageZonesScreen() {
                       </View>
                       <View style={styles.coursEditRow}>
                         <View style={styles.coursEditHalf}>
-                          <Text style={styles.fieldLabel}>Jour</Text>
+                          <Text
+                            style={[styles.fieldLabel, { color: theme.accent }]}
+                          >
+                            {lbl.jour}
+                          </Text>
                           <TextInput
-                            style={styles.fieldInput}
+                            style={[
+                              styles.fieldInput,
+                              {
+                                backgroundColor: theme.card,
+                                color: theme.text,
+                                borderColor: theme.border,
+                              },
+                            ]}
                             value={cours.jour}
                             onChangeText={(v) => updateCours(i, "jour", v)}
-                            placeholder="Ex: Lun"
-                            placeholderTextColor="#555"
+                            placeholder="Lun"
+                            placeholderTextColor={theme.textSub}
                           />
                         </View>
                         <View style={styles.coursEditHalf}>
-                          <Text style={styles.fieldLabel}>Heure</Text>
+                          <Text
+                            style={[styles.fieldLabel, { color: theme.accent }]}
+                          >
+                            {lbl.heure}
+                          </Text>
                           <TextInput
-                            style={styles.fieldInput}
+                            style={[
+                              styles.fieldInput,
+                              {
+                                backgroundColor: theme.card,
+                                color: theme.text,
+                                borderColor: theme.border,
+                              },
+                            ]}
                             value={cours.heure}
                             onChangeText={(v) => updateCours(i, "heure", v)}
-                            placeholder="Ex: 08:00"
-                            placeholderTextColor="#555"
+                            placeholder="08:00"
+                            placeholderTextColor={theme.textSub}
                           />
                         </View>
                       </View>
-                      <Text style={styles.fieldLabel}>Nom du cours</Text>
+                      <Text
+                        style={[styles.fieldLabel, { color: theme.accent }]}
+                      >
+                        {lbl.nomCours}
+                      </Text>
                       <TextInput
-                        style={styles.fieldInput}
+                        style={[
+                          styles.fieldInput,
+                          {
+                            backgroundColor: theme.card,
+                            color: theme.text,
+                            borderColor: theme.border,
+                          },
+                        ]}
                         value={cours.cours}
                         onChangeText={(v) => updateCours(i, "cours", v)}
-                        placeholder="Ex: Cardio Intense"
-                        placeholderTextColor="#555"
+                        placeholder="Cardio..."
+                        placeholderTextColor={theme.textSub}
                       />
-                      <Text style={styles.fieldLabel}>Entraineur</Text>
+                      <Text
+                        style={[styles.fieldLabel, { color: theme.accent }]}
+                      >
+                        {lbl.entraineur}
+                      </Text>
                       <TextInput
-                        style={styles.fieldInput}
+                        style={[
+                          styles.fieldInput,
+                          {
+                            backgroundColor: theme.card,
+                            color: theme.text,
+                            borderColor: theme.border,
+                          },
+                        ]}
                         value={cours.entraineur}
                         onChangeText={(v) => updateCours(i, "entraineur", v)}
-                        placeholder="Ex: Ahmed B."
-                        placeholderTextColor="#555"
+                        placeholder="Ahmed B."
+                        placeholderTextColor={theme.textSub}
                       />
                       <View style={styles.coursEditRow}>
                         <View style={styles.coursEditHalf}>
-                          <Text style={styles.fieldLabel}>Places total</Text>
+                          <Text
+                            style={[styles.fieldLabel, { color: theme.accent }]}
+                          >
+                            {lbl.placesTotal}
+                          </Text>
                           <TextInput
-                            style={styles.fieldInput}
+                            style={[
+                              styles.fieldInput,
+                              {
+                                backgroundColor: theme.card,
+                                color: theme.text,
+                                borderColor: theme.border,
+                              },
+                            ]}
                             value={String(cours.places)}
                             onChangeText={(v) => updateCours(i, "places", v)}
-                            placeholder="10"
-                            placeholderTextColor="#555"
                             keyboardType="numeric"
+                            placeholder="10"
+                            placeholderTextColor={theme.textSub}
                           />
                         </View>
                         <View style={styles.coursEditHalf}>
-                          <Text style={styles.fieldLabel}>
-                            Places restantes
+                          <Text
+                            style={[styles.fieldLabel, { color: theme.accent }]}
+                          >
+                            {lbl.placesRestantes}
                           </Text>
                           <TextInput
-                            style={styles.fieldInput}
+                            style={[
+                              styles.fieldInput,
+                              {
+                                backgroundColor: theme.card,
+                                color: theme.text,
+                                borderColor: theme.border,
+                              },
+                            ]}
                             value={String(cours.restantes)}
                             onChangeText={(v) => updateCours(i, "restantes", v)}
-                            placeholder="10"
-                            placeholderTextColor="#555"
                             keyboardType="numeric"
+                            placeholder="10"
+                            placeholderTextColor={theme.textSub}
                           />
                         </View>
                       </View>
                     </View>
                   ))}
-                  <TouchableOpacity style={styles.addBtn} onPress={addCours}>
-                    <Text style={styles.addBtnText}>+ Ajouter un cours</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.addBtn,
+                      { borderColor: "#2E7D32", backgroundColor: "#2E7D3222" },
+                    ]}
+                    onPress={addCours}
+                  >
+                    <Text style={[styles.addBtnText, { color: "#2E7D32" }]}>
+                      {lbl.ajouterCours}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              {/* ── TAB MENU ── */}
+              {/* MENU */}
               {activeEditTab === "menu" && (
                 <View>
-                  <Text style={styles.sectionHint}>
-                    Modifiez le menu du jour du restaurant
-                  </Text>
                   {editMenu.map((repas, ri) => (
-                    <View key={ri} style={styles.repasEditCard}>
+                    <View
+                      key={ri}
+                      style={[
+                        styles.repasEditCard,
+                        {
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
                       <Text style={styles.repasEditTitle}>{repas.repas}</Text>
                       {repas.items.map((item, ii) => (
                         <View key={ii} style={styles.menuItemRow}>
-                          <Text style={styles.menuItemNum}>{ii + 1}.</Text>
+                          <Text
+                            style={[
+                              styles.menuItemNum,
+                              { color: theme.textSub },
+                            ]}
+                          >
+                            {ii + 1}.
+                          </Text>
                           <TextInput
-                            style={[styles.fieldInput, { flex: 1 }]}
+                            style={[
+                              styles.fieldInput,
+                              {
+                                flex: 1,
+                                backgroundColor: theme.card,
+                                color: theme.text,
+                                borderColor: theme.border,
+                              },
+                            ]}
                             value={item}
                             onChangeText={(v) => updateMenuItem(ri, ii, v)}
                             placeholder={`Plat ${ii + 1}...`}
-                            placeholderTextColor="#555"
+                            placeholderTextColor={theme.textSub}
                           />
                         </View>
                       ))}
@@ -762,25 +978,29 @@ export default function ManageZonesScreen() {
                 </View>
               )}
 
-              {/* Bouton save */}
               {uploading ? (
-                <View style={styles.uploadingBox}>
-                  <ActivityIndicator color="#64B5F6" size="large" />
-                  <Text style={styles.uploadingText}>{uploadProgress}</Text>
+                <View
+                  style={[styles.uploadingBox, { backgroundColor: theme.bg }]}
+                >
+                  <ActivityIndicator color={theme.accent} size="large" />
+                  <Text style={[styles.uploadingText, { color: theme.accent }]}>
+                    {uploadProgress}
+                  </Text>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                  <Text style={styles.saveBtnText}>
-                    💾 Enregistrer toutes les modifications
-                  </Text>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: "#1565C0" }]}
+                  onPress={handleSave}
+                >
+                  <Text style={styles.saveBtnText}>{lbl.enregistrer}</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, { backgroundColor: "#E5393522" }]}
                 onPress={() => !uploading && setModalVisible(false)}
               >
-                <Text style={styles.cancelBtnText}>Annuler</Text>
+                <Text style={styles.cancelBtnText}>{lbl.annuler}</Text>
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
@@ -792,7 +1012,7 @@ export default function ManageZonesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -800,17 +1020,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
+    borderBottomWidth: 1,
   },
-  backText: { color: "#64B5F6", fontSize: 16 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: "#fff" },
+  backText: { fontSize: 16 },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
   list: { flex: 1, paddingHorizontal: 15 },
   zoneCard: {
-    backgroundColor: "#1E2D45",
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
+    marginTop: 10,
   },
   zoneTop: {
     flexDirection: "row",
@@ -820,39 +1040,31 @@ const styles = StyleSheet.create({
   },
   zoneIconBig: { fontSize: 36 },
   zoneInfo: { flex: 1 },
-  zoneName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 2,
-  },
-  zoneHoraires: { fontSize: 11, color: "#888", marginBottom: 4 },
-  zoneDesc: { fontSize: 12, color: "#aaa", lineHeight: 18 },
+  zoneName: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
+  zoneHoraires: { fontSize: 11, marginBottom: 4 },
+  zoneDesc: { fontSize: 12, lineHeight: 18 },
   statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   statusText: { fontSize: 11, fontWeight: "bold" },
   zoneStats: {
     flexDirection: "row",
-    backgroundColor: "#0A1628",
     borderRadius: 10,
     padding: 10,
     marginBottom: 10,
   },
   zoneStat: { flex: 1, alignItems: "center" },
-  zoneStatLabel: { fontSize: 10, color: "#888", marginBottom: 2 },
-  zoneStatVal: { fontSize: 13, fontWeight: "bold", color: "#fff" },
+  zoneStatLabel: { fontSize: 10, marginBottom: 2 },
+  zoneStatVal: { fontSize: 13, fontWeight: "bold" },
   photosRow: { marginBottom: 10 },
   photoThumb: { width: 80, height: 60, borderRadius: 8, marginRight: 8 },
   zoneActions: { flexDirection: "row", gap: 10 },
   editBtn: {
     flex: 1,
-    backgroundColor: "#1565C022",
     borderRadius: 10,
     padding: 12,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#1565C0",
   },
-  editBtnText: { color: "#64B5F6", fontSize: 13, fontWeight: "bold" },
+  editBtnText: { fontSize: 13, fontWeight: "bold" },
   toggleBtn: {
     flex: 1,
     borderRadius: 10,
@@ -867,7 +1079,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalBox: {
-    backgroundColor: "#1E2D45",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -879,11 +1090,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  modalTitle: { fontSize: 17, fontWeight: "bold", color: "#fff" },
-  modalClose: { fontSize: 20, color: "#888", padding: 4 },
+  modalTitle: { fontSize: 17, fontWeight: "bold" },
+  modalClose: { fontSize: 20, padding: 4 },
   editTabBar: {
     flexDirection: "row",
-    backgroundColor: "#0A1628",
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
@@ -894,67 +1104,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
   },
-  editTabActive: { backgroundColor: "#1E2D45" },
-  editTabText: { fontSize: 11, color: "#888" },
-  editTabTextActive: { color: "#64B5F6", fontWeight: "bold" },
+  editTabText: { fontSize: 11 },
   fieldLabel: {
     fontSize: 11,
-    color: "#64B5F6",
     letterSpacing: 1,
     textTransform: "uppercase",
     marginBottom: 6,
     marginTop: 12,
   },
-  fieldInput: {
-    backgroundColor: "#0A1628",
-    borderRadius: 10,
-    padding: 12,
-    color: "#fff",
-    fontSize: 13,
-    borderWidth: 1,
-    borderColor: "#2A3F5F",
-  },
+  fieldInput: { borderRadius: 10, padding: 12, fontSize: 13, borderWidth: 1 },
   fieldTextarea: { height: 80, textAlignVertical: "top" },
-  uploadHint: {
-    fontSize: 11,
-    color: "#888",
-    marginBottom: 10,
-    fontStyle: "italic",
-    textAlign: "center",
-  },
   photoBlock: {
-    backgroundColor: "#0A1628",
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
-  photoBlockHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
-  },
-  photoNum: { fontSize: 12, color: "#64B5F6", fontWeight: "bold" },
-  newBadge: {
-    backgroundColor: "#2E7D3222",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: "#2E7D32",
-  },
-  newBadgeText: { color: "#2E7D32", fontSize: 9, fontWeight: "bold" },
-  savedBadge: {
-    backgroundColor: "#1565C022",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: "#64B5F6",
-  },
-  savedBadgeText: { color: "#64B5F6", fontSize: 9, fontWeight: "bold" },
+  photoNum: { fontSize: 12, fontWeight: "bold", marginBottom: 10 },
   photoPreview: {
     width: "100%",
     height: 140,
@@ -964,14 +1130,12 @@ const styles = StyleSheet.create({
   photoActions: { flexDirection: "row", gap: 8 },
   photoChangeBtn: {
     flex: 1,
-    backgroundColor: "#1565C022",
     borderRadius: 8,
     padding: 10,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#1565C0",
   },
-  photoChangeBtnText: { color: "#64B5F6", fontSize: 12, fontWeight: "bold" },
+  photoChangeBtnText: { fontSize: 12, fontWeight: "bold" },
   photoDeleteBtn: {
     flex: 1,
     backgroundColor: "#E5393522",
@@ -984,7 +1148,6 @@ const styles = StyleSheet.create({
   photoDeleteBtnText: { color: "#E53935", fontSize: 12, fontWeight: "bold" },
   pickBtn: {
     borderWidth: 2,
-    borderColor: "#2A3F5F",
     borderStyle: "dashed",
     borderRadius: 12,
     padding: 20,
@@ -992,21 +1155,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pickBtnIcon: { fontSize: 32 },
-  pickBtnText: { color: "#888", fontSize: 13 },
-  sectionHint: {
-    fontSize: 12,
-    color: "#888",
-    marginBottom: 12,
-    fontStyle: "italic",
-    textAlign: "center",
-  },
+  pickBtnText: { fontSize: 13 },
   coursEditCard: {
-    backgroundColor: "#0A1628",
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
   coursEditHeader: {
     flexDirection: "row",
@@ -1014,28 +1168,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  coursEditNum: { fontSize: 13, color: "#64B5F6", fontWeight: "bold" },
+  coursEditNum: { fontSize: 13, fontWeight: "bold" },
   removeBtn: { backgroundColor: "#E5393522", borderRadius: 8, padding: 6 },
   removeBtnText: { fontSize: 14 },
   coursEditRow: { flexDirection: "row", gap: 10 },
   coursEditHalf: { flex: 1 },
   addBtn: {
-    backgroundColor: "#2E7D3222",
     borderRadius: 12,
     padding: 14,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#2E7D32",
     marginTop: 4,
   },
-  addBtnText: { color: "#2E7D32", fontSize: 14, fontWeight: "bold" },
+  addBtnText: { fontSize: 14, fontWeight: "bold" },
   repasEditCard: {
-    backgroundColor: "#0A1628",
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
   repasEditTitle: {
     color: "#C9A96E",
@@ -1049,18 +1199,16 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
-  menuItemNum: { color: "#888", fontSize: 13, width: 20 },
+  menuItemNum: { fontSize: 13, width: 20 },
   uploadingBox: {
-    backgroundColor: "#0A1628",
     borderRadius: 12,
     padding: 24,
     alignItems: "center",
     marginTop: 20,
     gap: 10,
   },
-  uploadingText: { color: "#64B5F6", fontSize: 14, fontWeight: "bold" },
+  uploadingText: { fontSize: 14, fontWeight: "bold" },
   saveBtn: {
-    backgroundColor: "#1565C0",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
@@ -1068,7 +1216,6 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { color: "#fff", fontSize: 15, fontWeight: "bold" },
   cancelBtn: {
-    backgroundColor: "#E5393522",
     borderRadius: 12,
     padding: 14,
     alignItems: "center",

@@ -3,7 +3,7 @@ import {
   doc,
   onSnapshot,
   query,
-  updateDoc
+  updateDoc,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -15,40 +15,60 @@ import {
   View,
 } from "react-native";
 import { db } from "../../config/firebase";
+import { useApp } from "../../context/AppContext";
 
 export default function AlertsScreen() {
+  const { theme, lang } = useApp();
   const [refreshing, setRefreshing] = useState(false);
   const [filtre, setFiltre] = useState("tous");
   const [alertes, setAlertes] = useState([]);
 
-  // 🔥 Connexion Firebase temps réel
   useEffect(() => {
     const q = query(collection(db, "alertes"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setAlertes(data);
     });
     return unsubscribe;
   }, []);
 
+  const lbl = {
+    title: lang === "ar" ? "التنبيهات" : lang === "en" ? "Alerts" : "Alertes",
+    urgent: lang === "ar" ? "عاجل" : "Urgent",
+    warning: lang === "ar" ? "تحذير" : "Warning",
+    info: lang === "ar" ? "معلومات" : "Info",
+    tous: lang === "ar" ? "الكل" : lang === "en" ? "All" : "Tous",
+    aucune:
+      lang === "ar"
+        ? "لا توجد تنبيهات"
+        : lang === "en"
+          ? "No alerts"
+          : "Aucune alerte",
+    resoudre:
+      lang === "ar"
+        ? "تم الحل"
+        : lang === "en"
+          ? "Mark resolved"
+          : "Marquer resolu",
+    resolu: lang === "ar" ? "تم الحل" : lang === "en" ? "Resolved" : "Resolu",
+    chambre: lang === "ar" ? "غرفة" : lang === "en" ? "Room" : "Chambre",
+  };
+
   const filtres = [
-    { id: "tous", label: "Tous", count: alertes.length },
+    { id: "tous", label: lbl.tous, count: alertes.length },
     {
       id: "urgent",
-      label: "🔴 Urgent",
+      label: lbl.urgent,
       count: alertes.filter((a) => a.niveau === "urgent").length,
     },
     {
       id: "warning",
-      label: "🟠 Warning",
+      label: lbl.warning,
       count: alertes.filter((a) => a.niveau === "warning").length,
     },
     {
       id: "info",
-      label: "🔵 Info",
+      label: lbl.info,
       count: alertes.filter((a) => a.niveau === "info").length,
     },
   ];
@@ -59,27 +79,37 @@ export default function AlertsScreen() {
   const getNiveauStyle = (niveau) => {
     switch (niveau) {
       case "urgent":
-        return { bg: "#2C1010", border: "#E53935", badge: "#E53935" };
+        return {
+          bg: theme.themeMode === "light" ? "#FFE0E0" : "#2C1010",
+          border: "#E53935",
+          badge: "#E53935",
+        };
       case "warning":
-        return { bg: "#2C1E10", border: "#F57C00", badge: "#F57C00" };
+        return {
+          bg: theme.themeMode === "light" ? "#FFF3E0" : "#2C1E10",
+          border: "#F57C00",
+          badge: "#F57C00",
+        };
       case "info":
-        return { bg: "#0D1E2C", border: "#1565C0", badge: "#1565C0" };
+        return {
+          bg: theme.themeMode === "light" ? "#E3F2FD" : "#0D1E2C",
+          border: "#1565C0",
+          badge: "#1565C0",
+        };
       default:
-        return { bg: "#1E2D45", border: "#2A3F5F", badge: "#888" };
+        return { bg: theme.card, border: theme.border, badge: "#888" };
     }
   };
 
   const handleResoudre = async (id) => {
     try {
       await updateDoc(doc(db, "alertes", id), { resolu: true });
-    } catch (error) {
-      console.log("Erreur:", error);
-    }
+    } catch (e) {}
   };
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.bg }]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -91,40 +121,43 @@ export default function AlertsScreen() {
         />
       }
     >
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🚨 Alertes</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          {lbl.title}
+        </Text>
         <View style={styles.alertBadge}>
           <Text style={styles.alertBadgeText}>
             {alertes.filter((a) => a.niveau === "urgent" && !a.resolu).length}{" "}
-            urgent
+            {lbl.urgent}
           </Text>
         </View>
       </View>
 
-      {/* Résumé */}
       <View style={styles.resumeGrid}>
-        <View style={[styles.resumeCard, { backgroundColor: "#E53935" }]}>
-          <Text style={styles.resumeNumber}>
-            {alertes.filter((a) => a.niveau === "urgent").length}
-          </Text>
-          <Text style={styles.resumeLabel}>Urgent</Text>
-        </View>
-        <View style={[styles.resumeCard, { backgroundColor: "#F57C00" }]}>
-          <Text style={styles.resumeNumber}>
-            {alertes.filter((a) => a.niveau === "warning").length}
-          </Text>
-          <Text style={styles.resumeLabel}>Warning</Text>
-        </View>
-        <View style={[styles.resumeCard, { backgroundColor: "#1565C0" }]}>
-          <Text style={styles.resumeNumber}>
-            {alertes.filter((a) => a.niveau === "info").length}
-          </Text>
-          <Text style={styles.resumeLabel}>Info</Text>
-        </View>
+        {[
+          [
+            "#E53935",
+            alertes.filter((a) => a.niveau === "urgent").length,
+            lbl.urgent,
+          ],
+          [
+            "#F57C00",
+            alertes.filter((a) => a.niveau === "warning").length,
+            lbl.warning,
+          ],
+          [
+            "#1565C0",
+            alertes.filter((a) => a.niveau === "info").length,
+            lbl.info,
+          ],
+        ].map(([color, count, label], i) => (
+          <View key={i} style={[styles.resumeCard, { backgroundColor: color }]}>
+            <Text style={styles.resumeNumber}>{count}</Text>
+            <Text style={styles.resumeLabel}>{label}</Text>
+          </View>
+        ))}
       </View>
 
-      {/* Filtres */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -135,6 +168,7 @@ export default function AlertsScreen() {
             key={f.id}
             style={[
               styles.filtreBtn,
+              { backgroundColor: theme.card, borderColor: theme.border },
               filtre === f.id && styles.filtreBtnActive,
             ]}
             onPress={() => setFiltre(f.id)}
@@ -142,6 +176,7 @@ export default function AlertsScreen() {
             <Text
               style={[
                 styles.filtreText,
+                { color: theme.textSub },
                 filtre === f.id && styles.filtreTextActive,
               ]}
             >
@@ -151,55 +186,56 @@ export default function AlertsScreen() {
         ))}
       </ScrollView>
 
-      {/* Liste alertes */}
       <View style={styles.alertesList}>
         {alertesFiltrees.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>✅ Aucune alerte</Text>
+          <View style={[styles.emptyCard, { backgroundColor: theme.card }]}>
+            <Text style={[styles.emptyText, { color: theme.accent }]}>
+              {lbl.aucune}
+            </Text>
           </View>
         ) : (
           alertesFiltrees.map((alerte) => {
-            const style = getNiveauStyle(alerte.niveau);
+            const s = getNiveauStyle(alerte.niveau);
             return (
               <View
                 key={alerte.id}
                 style={[
                   styles.alerteCard,
-                  { backgroundColor: style.bg, borderColor: style.border },
+                  { backgroundColor: s.bg, borderColor: s.border },
                   alerte.resolu && styles.alerteResolue,
                 ]}
               >
                 <Text style={styles.alerteIcone}>{alerte.icone}</Text>
                 <View style={styles.alerteCenter}>
                   <View style={styles.alerteHeaderRow}>
-                    <Text style={styles.alerteChambre}>
-                      Chambre {alerte.chambre}
+                    <Text style={[styles.alerteChambre, { color: theme.text }]}>
+                      {lbl.chambre} {alerte.chambre}
                     </Text>
                     <View
-                      style={[
-                        styles.niveauBadge,
-                        { backgroundColor: style.badge },
-                      ]}
+                      style={[styles.niveauBadge, { backgroundColor: s.badge }]}
                     >
                       <Text style={styles.niveauText}>
                         {alerte.niveau?.toUpperCase()}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.alerteMessage}>{alerte.message}</Text>
-                  <Text style={styles.alerteHeure}>🕐 {alerte.heure}</Text>
-                  {!alerte.resolu && (
+                  <Text
+                    style={[styles.alerteMessage, { color: theme.textSub }]}
+                  >
+                    {alerte.message}
+                  </Text>
+                  <Text style={[styles.alerteHeure, { color: theme.textSub }]}>
+                    🕐 {alerte.heure}
+                  </Text>
+                  {!alerte.resolu ? (
                     <TouchableOpacity
                       style={styles.resoudreBtn}
                       onPress={() => handleResoudre(alerte.id)}
                     >
-                      <Text style={styles.resoudreBtnText}>
-                        ✅ Marquer résolu
-                      </Text>
+                      <Text style={styles.resoudreBtnText}>{lbl.resoudre}</Text>
                     </TouchableOpacity>
-                  )}
-                  {alerte.resolu && (
-                    <Text style={styles.resoluText}>✅ Résolu</Text>
+                  ) : (
+                    <Text style={styles.resoluText}>{lbl.resolu}</Text>
                   )}
                 </View>
               </View>
@@ -213,7 +249,7 @@ export default function AlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -222,7 +258,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
   },
-  headerTitle: { fontSize: 22, fontWeight: "bold", color: "#fff" },
+  headerTitle: { fontSize: 22, fontWeight: "bold" },
   alertBadge: {
     backgroundColor: "#E53935",
     borderRadius: 12,
@@ -244,22 +280,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#1E2D45",
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#2A3F5F",
   },
   filtreBtnActive: { backgroundColor: "#1565C0", borderColor: "#1565C0" },
-  filtreText: { color: "#888", fontSize: 13 },
+  filtreText: { fontSize: 13 },
   filtreTextActive: { color: "#fff", fontWeight: "bold" },
   alertesList: { paddingHorizontal: 15, gap: 10 },
-  emptyCard: {
-    backgroundColor: "#1E2D45",
-    borderRadius: 16,
-    padding: 30,
-    alignItems: "center",
-  },
-  emptyText: { color: "#64B5F6", fontSize: 16 },
+  emptyCard: { borderRadius: 16, padding: 30, alignItems: "center" },
+  emptyText: { fontSize: 16 },
   alerteCard: {
     flexDirection: "row",
     borderRadius: 16,
@@ -278,16 +307,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  alerteChambre: { fontSize: 15, fontWeight: "bold", color: "#fff" },
+  alerteChambre: { fontSize: 15, fontWeight: "bold" },
   niveauBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   niveauText: { color: "#fff", fontSize: 10, fontWeight: "bold" },
-  alerteMessage: {
-    fontSize: 13,
-    color: "#ccc",
-    marginBottom: 6,
-    lineHeight: 18,
-  },
-  alerteHeure: { fontSize: 11, color: "#888", marginBottom: 8 },
+  alerteMessage: { fontSize: 13, marginBottom: 6, lineHeight: 18 },
+  alerteHeure: { fontSize: 11, marginBottom: 8 },
   resoudreBtn: {
     backgroundColor: "#2E7D32",
     borderRadius: 8,

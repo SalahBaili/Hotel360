@@ -1,63 +1,64 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    query,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  where,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { db } from "../config/firebase";
+import { useApp } from "../context/AppContext";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { t, theme, themeMode, setThemeMode, lang, setLang, isRTL } = useApp();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Notifications
+  // ── États locaux (pas encore appliqués au contexte) ──────────
   const [notifAlertes, setNotifAlertes] = useState(true);
   const [notifTemperature, setNotifTemperature] = useState(true);
   const [notifPresence, setNotifPresence] = useState(false);
   const [notifSon, setNotifSon] = useState(true);
-
-  // Seuils
   const [seuilTemp, setSeuilTemp] = useState(27);
   const [seuilHumidite, setSeuilHumidite] = useState(75);
-
-  // Affichage
-  const [modeNuit, setModeNuit] = useState(true);
   const [actualisation, setActualisation] = useState(true);
 
-  // 🔥 Charger les paramètres sauvegardés
+  // ── Valeurs locales pour thème et langue (appliquées seulement au Save) ──
+  const [localModeNuit, setLocalModeNuit] = useState(themeMode === "dark");
+  const [localLang, setLocalLang] = useState(lang);
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const saved = await AsyncStorage.getItem("hotel360_settings");
         if (saved) {
-          const settings = JSON.parse(saved);
-          setNotifAlertes(settings.notifAlertes ?? true);
-          setNotifTemperature(settings.notifTemperature ?? true);
-          setNotifPresence(settings.notifPresence ?? false);
-          setNotifSon(settings.notifSon ?? true);
-          setSeuilTemp(settings.seuilTemp ?? 27);
-          setSeuilHumidite(settings.seuilHumidite ?? 75);
-          setModeNuit(settings.modeNuit ?? true);
-          setActualisation(settings.actualisation ?? true);
+          const s = JSON.parse(saved);
+          setNotifAlertes(s.notifAlertes ?? true);
+          setNotifTemperature(s.notifTemperature ?? true);
+          setNotifPresence(s.notifPresence ?? false);
+          setNotifSon(s.notifSon ?? true);
+          setSeuilTemp(s.seuilTemp ?? 27);
+          setSeuilHumidite(s.seuilHumidite ?? 75);
+          setActualisation(s.actualisation ?? true);
+          setLocalModeNuit(s.modeNuit ?? true);
+          setLocalLang(s.langue ?? "fr");
         }
-      } catch (error) {
-        console.log("Erreur chargement:", error);
+      } catch (e) {
       } finally {
         setLoading(false);
       }
@@ -65,7 +66,7 @@ export default function SettingsScreen() {
     loadSettings();
   }, []);
 
-  // 🔥 Sauvegarder les paramètres
+  // ── Sauvegarde : applique tout au contexte global ────────────
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -76,12 +77,17 @@ export default function SettingsScreen() {
         notifSon,
         seuilTemp,
         seuilHumidite,
-        modeNuit,
+        modeNuit: localModeNuit,
         actualisation,
+        langue: localLang,
       };
       await AsyncStorage.setItem("hotel360_settings", JSON.stringify(settings));
 
-      // Supprimer alertes temperature et humidite pour recalculer
+      // ✅ Appliquer thème et langue seulement maintenant
+      setThemeMode(localModeNuit ? "dark" : "light");
+      setLang(localLang);
+
+      // Nettoyer alertes périmées
       const q1 = query(
         collection(db, "alertes"),
         where("type", "==", "temperature"),
@@ -91,16 +97,14 @@ export default function SettingsScreen() {
         where("type", "==", "humidite"),
       );
       const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-      const deleteAll = [...snap1.docs, ...snap2.docs].map((d) =>
-        deleteDoc(doc(db, "alertes", d.id)),
+      await Promise.all(
+        [...snap1.docs, ...snap2.docs].map((d) =>
+          deleteDoc(doc(db, "alertes", d.id)),
+        ),
       );
-      await Promise.all(deleteAll);
 
-      Alert.alert(
-        "✅ Sauvegardé",
-        "Paramètres enregistrés et alertes recalculées !",
-      );
-    } catch (error) {
+      Alert.alert(t("sauvegarde_ok"), t("sauvegarde_msg"));
+    } catch (e) {
       Alert.alert("Erreur", "Impossible de sauvegarder");
     } finally {
       setSaving(false);
@@ -108,62 +112,85 @@ export default function SettingsScreen() {
   };
 
   const handleReset = () => {
-    Alert.alert(
-      "🔄 Réinitialiser",
-      "Voulez-vous réinitialiser tous les paramètres ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Réinitialiser",
-          style: "destructive",
-          onPress: async () => {
-            setNotifAlertes(true);
-            setNotifTemperature(true);
-            setNotifPresence(false);
-            setNotifSon(true);
-            setSeuilTemp(27);
-            setSeuilHumidite(75);
-            setModeNuit(true);
-            setActualisation(true);
-            await AsyncStorage.removeItem("hotel360_settings");
-            Alert.alert("✅ Réinitialisé !");
-          },
+    Alert.alert(t("reinit_titre"), t("reinit_msg"), [
+      { text: t("annuler"), style: "cancel" },
+      {
+        text: t("reinitialiser"),
+        style: "destructive",
+        onPress: async () => {
+          setNotifAlertes(true);
+          setNotifTemperature(true);
+          setNotifPresence(false);
+          setNotifSon(true);
+          setSeuilTemp(27);
+          setSeuilHumidite(75);
+          setActualisation(true);
+          setLocalModeNuit(true);
+          setLocalLang("fr");
+          // Appliquer immédiatement au reset
+          setThemeMode("dark");
+          setLang("fr");
+          await AsyncStorage.removeItem("hotel360_settings");
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const SettingRow = ({ icon, title, subtitle, value, onValueChange }) => (
-    <View style={styles.settingRow}>
+    <View
+      style={[
+        styles.settingRow,
+        {
+          borderBottomColor: theme.border,
+          flexDirection: isRTL ? "row-reverse" : "row",
+        },
+      ]}
+    >
       <Text style={styles.settingIcon}>{icon}</Text>
-      <View style={styles.settingInfo}>
-        <Text style={styles.settingTitle}>{title}</Text>
-        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+      <View style={[styles.settingInfo, isRTL && { alignItems: "flex-end" }]}>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={[styles.settingSubtitle, { color: theme.textSub }]}>
+            {subtitle}
+          </Text>
+        )}
       </View>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: "#2A3F5F", true: "#1565C0" }}
+        trackColor={{ false: theme.bg3, true: "#1565C0" }}
         thumbColor={value ? "#64B5F6" : "#888"}
       />
     </View>
   );
 
   const SeuilRow = ({ icon, title, value, onMoins, onPlus, unite }) => (
-    <View style={styles.settingRow}>
+    <View
+      style={[
+        styles.settingRow,
+        {
+          borderBottomColor: theme.border,
+          flexDirection: isRTL ? "row-reverse" : "row",
+        },
+      ]}
+    >
       <Text style={styles.settingIcon}>{icon}</Text>
-      <View style={styles.settingInfo}>
-        <Text style={styles.settingTitle}>{title}</Text>
-        <Text style={styles.settingSubtitle}>
-          Seuil actuel : {value}
+      <View style={[styles.settingInfo, isRTL && { alignItems: "flex-end" }]}>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>
+          {title}
+        </Text>
+        <Text style={[styles.settingSubtitle, { color: theme.textSub }]}>
+          {value}
           {unite}
         </Text>
       </View>
       <View style={styles.seuilControls}>
         <TouchableOpacity style={styles.seuilBtn} onPress={onMoins}>
-          <Text style={styles.seuilBtnText}>−</Text>
+          <Text style={styles.seuilBtnText}>-</Text>
         </TouchableOpacity>
-        <Text style={styles.seuilValue}>{value}</Text>
+        <Text style={[styles.seuilValue, { color: theme.text }]}>{value}</Text>
         <TouchableOpacity style={styles.seuilBtn} onPress={onPlus}>
           <Text style={styles.seuilBtnText}>+</Text>
         </TouchableOpacity>
@@ -173,63 +200,77 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingScreen}>
+      <View style={[styles.loadingScreen, { backgroundColor: theme.bg }]}>
         <ActivityIndicator size="large" color="#64B5F6" />
-        <Text style={styles.loadingText}>Chargement...</Text>
+        <Text style={{ color: theme.accent, marginTop: 10 }}>
+          {t("chargement")}
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
+      <View
+        style={[
+          styles.header,
+          { flexDirection: isRTL ? "row-reverse" : "row" },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Retour</Text>
+          <Text style={{ color: theme.accent, fontSize: 16 }}>
+            {t("retour")}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>⚙️ Paramètres</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          {t("parametres")}
+        </Text>
         <View style={{ width: 70 }} />
       </View>
 
       {/* Notifications */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔔 Notifications</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>
+          {t("notifications")}
+        </Text>
         <SettingRow
           icon="🚨"
-          title="Alertes critiques"
-          subtitle="Recevoir les alertes urgentes"
+          title={t("alertes_critiques")}
+          subtitle={t("alertes_critiques_sub")}
           value={notifAlertes}
           onValueChange={setNotifAlertes}
         />
         <SettingRow
           icon="🌡️"
-          title="Température"
-          subtitle="Alertes de température anormale"
+          title={t("temperature")}
+          subtitle={t("temperature_sub")}
           value={notifTemperature}
           onValueChange={setNotifTemperature}
         />
         <SettingRow
           icon="👤"
-          title="Présence"
-          subtitle="Détection de mouvement"
+          title={t("presence")}
+          subtitle={t("presence_sub")}
           value={notifPresence}
           onValueChange={setNotifPresence}
         />
         <SettingRow
           icon="🔊"
-          title="Son"
-          subtitle="Activer le son des notifications"
+          title={t("son")}
+          subtitle={t("son_sub")}
           value={notifSon}
           onValueChange={setNotifSon}
         />
       </View>
 
       {/* Seuils */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📊 Seuils d'alerte</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>
+          {t("seuils")}
+        </Text>
         <SeuilRow
           icon="🌡️"
-          title="Température max"
+          title={t("temp_max")}
           value={seuilTemp}
           unite="°C"
           onMoins={() => setSeuilTemp((v) => Math.max(20, v - 1))}
@@ -237,7 +278,7 @@ export default function SettingsScreen() {
         />
         <SeuilRow
           icon="💧"
-          title="Humidité max"
+          title={t("humidite_max")}
           value={seuilHumidite}
           unite="%"
           onMoins={() => setSeuilHumidite((v) => Math.max(50, v - 5))}
@@ -245,51 +286,99 @@ export default function SettingsScreen() {
         />
       </View>
 
-      {/* Affichage */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🎨 Affichage</Text>
+      {/* Affichage — utilise localModeNuit, pas le thème global */}
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>
+          {t("affichage")}
+        </Text>
         <SettingRow
           icon="🌙"
-          title="Mode nuit"
-          subtitle="Thème sombre activé"
-          value={modeNuit}
-          onValueChange={setModeNuit}
+          title={t("mode_nuit")}
+          subtitle={localModeNuit ? t("mode_nuit_sub") : t("mode_jour_sub")}
+          value={localModeNuit}
+          onValueChange={(val) => setLocalModeNuit(val)}
         />
         <SettingRow
           icon="🔄"
-          title="Actualisation auto"
-          subtitle="Mise à jour en temps réel"
+          title={t("actualisation")}
+          subtitle={t("actualisation_sub")}
           value={actualisation}
           onValueChange={setActualisation}
         />
       </View>
 
-      {/* Infos app */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ℹ️ Informations</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>📱 Version</Text>
-          <Text style={styles.infoValue}>1.0.0</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>🏨 Système</Text>
-          <Text style={styles.infoValue}>Hotel 360°</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>☁️ Firebase</Text>
-          <Text style={[styles.infoValue, { color: "#2E7D32" }]}>
-            ✅ Connecté
-          </Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>📡 MQTT</Text>
-          <Text style={[styles.infoValue, { color: "#F57C00" }]}>
-            ⏳ En attente
-          </Text>
+      {/* Langue — utilise localLang, pas le contexte global */}
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>
+          {t("langue")}
+        </Text>
+        <View style={styles.langRow}>
+          {(["fr", "en", "ar"] as const).map((l) => (
+            <TouchableOpacity
+              key={l}
+              style={[
+                styles.langBtn,
+                {
+                  borderColor: localLang === l ? "#64B5F6" : theme.border,
+                  backgroundColor:
+                    localLang === l ? "#1565C022" : theme.inputBg,
+                },
+              ]}
+              onPress={() => setLocalLang(l)}
+            >
+              <Text style={styles.langFlag}>
+                {l === "fr" ? "🇫🇷" : l === "en" ? "🇬🇧" : "🇹🇳"}
+              </Text>
+              <Text
+                style={[
+                  styles.langLabel,
+                  {
+                    color: localLang === l ? "#64B5F6" : theme.textSub,
+                    fontWeight: localLang === l ? "bold" : "normal",
+                  },
+                ]}
+              >
+                {l === "fr" ? "Francais" : l === "en" ? "English" : "العربية"}
+              </Text>
+              {localLang === l && (
+                <Text style={{ color: "#64B5F6", fontSize: 16 }}>✓</Text>
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
-      {/* Boutons */}
+      {/* Infos */}
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.accent }]}>
+          {t("informations")}
+        </Text>
+        {[
+          ["Version", "1.0.0"],
+          ["Systeme", "Hotel 360"],
+          ["Firebase", "Connecte"],
+          ["MQTT", "En attente"],
+        ].map(([label, value], i) => (
+          <View
+            key={i}
+            style={[
+              styles.infoRow,
+              {
+                borderBottomColor: theme.border,
+                flexDirection: isRTL ? "row-reverse" : "row",
+              },
+            ]}
+          >
+            <Text style={[styles.infoLabel, { color: theme.textSub }]}>
+              {label}
+            </Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>
+              {value}
+            </Text>
+          </View>
+        ))}
+      </View>
+
       <TouchableOpacity
         style={[
           styles.btn,
@@ -301,7 +390,7 @@ export default function SettingsScreen() {
         {saving ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.btnText}>💾 Sauvegarder</Text>
+          <Text style={styles.btnText}>{t("sauvegarder")}</Text>
         )}
       </TouchableOpacity>
 
@@ -312,7 +401,7 @@ export default function SettingsScreen() {
         ]}
         onPress={handleReset}
       >
-        <Text style={styles.btnText}>🔄 Réinitialiser</Text>
+        <Text style={styles.btnText}>{t("reinitialiser")}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />
@@ -321,16 +410,9 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A1628" },
-  loadingScreen: {
-    flex: 1,
-    backgroundColor: "#0A1628",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: { color: "#64B5F6", marginTop: 10 },
+  container: { flex: 1 },
+  loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
@@ -338,32 +420,24 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   backBtn: { width: 70 },
-  backText: { color: "#64B5F6", fontSize: 16 },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
+  headerTitle: { fontSize: 20, fontWeight: "bold" },
   section: {
-    backgroundColor: "#1E2D45",
     borderRadius: 16,
     marginHorizontal: 15,
     marginBottom: 15,
     padding: 20,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#64B5F6",
-    marginBottom: 15,
-  },
+  sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 15 },
   settingRow: {
-    flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#2A3F5F",
+    gap: 12,
   },
-  settingIcon: { fontSize: 22, marginRight: 12 },
+  settingIcon: { fontSize: 22 },
   settingInfo: { flex: 1 },
-  settingTitle: { fontSize: 14, color: "#fff", fontWeight: "600" },
-  settingSubtitle: { fontSize: 12, color: "#888", marginTop: 2 },
+  settingTitle: { fontSize: 14, fontWeight: "600" },
+  settingSubtitle: { fontSize: 12, marginTop: 2 },
   seuilControls: { flexDirection: "row", alignItems: "center", gap: 10 },
   seuilBtn: {
     width: 32,
@@ -375,21 +449,30 @@ const styles = StyleSheet.create({
   },
   seuilBtnText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   seuilValue: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
     minWidth: 30,
     textAlign: "center",
   },
-  infoRow: {
+  langRow: { gap: 8 },
+  langBtn: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  langFlag: { fontSize: 24 },
+  langLabel: { flex: 1, fontSize: 15 },
+  infoRow: {
     justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#2A3F5F",
   },
-  infoLabel: { color: "#888", fontSize: 13 },
-  infoValue: { color: "#fff", fontSize: 13 },
+  infoLabel: { fontSize: 13 },
+  infoValue: { fontSize: 13 },
   btn: {
     borderRadius: 12,
     height: 52,
