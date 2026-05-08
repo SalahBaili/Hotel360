@@ -39,9 +39,9 @@ export default function DashboardScreen() {
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const [seuilTemp, setSeuilTemp] = useState(27);
   const [seuilHumidite, setSeuilHumidite] = useState(75);
+  const [seuilGaz, setSeuilGaz] = useState(1500);
   const [userRole, setUserRole] = useState("admin");
 
-  // ✅ Charge la photo depuis Firestore au mount — initialise le contexte global
   useEffect(() => {
     const loadUser = async () => {
       if (!auth.currentUser) return;
@@ -64,7 +64,6 @@ export default function DashboardScreen() {
     loadUser();
   }, []);
 
-  // Recharger seuils quand on revient
   useFocusEffect(
     useCallback(() => {
       const reload = async () => {
@@ -74,6 +73,7 @@ export default function DashboardScreen() {
             const s = JSON.parse(saved);
             setSeuilTemp(s.seuilTemp ?? 27);
             setSeuilHumidite(s.seuilHumidite ?? 75);
+            setSeuilGaz(s.seuilGaz ?? 1500);
           }
         } catch (e) {}
       };
@@ -132,6 +132,7 @@ export default function DashboardScreen() {
                 data.reduce((a, c) => a + c.temperature, 0) / data.length,
               )
             : 0;
+
         data.forEach((chambre) => {
           if (chambre.temperature > seuilTemp)
             genererAlerteAuto(
@@ -157,13 +158,25 @@ export default function DashboardScreen() {
               `Humidite elevee chambre ${chambre.id}: ${chambre.humidite}%`,
               "💧",
             );
+          // ✅ AJOUT MQ-2
+          if (chambre.gaz > seuilGaz)
+            genererAlerteAuto(
+              chambre,
+              "gaz",
+              "urgent",
+              `Gaz detecte chambre ${chambre.id}: valeur ${chambre.gaz}`,
+              "🔥",
+            );
         });
+
         const alertesCount = data.filter(
           (c) =>
             c.temperature > seuilTemp ||
             (c.fenetre && c.clim) ||
-            c.humidite > seuilHumidite,
+            c.humidite > seuilHumidite ||
+            c.gaz > seuilGaz,
         ).length;
+
         setStats({
           chambresOccupees: occupees,
           chambresLibres: data.length - occupees,
@@ -173,7 +186,7 @@ export default function DashboardScreen() {
       },
     );
     return unsubscribe;
-  }, [seuilTemp, seuilHumidite]);
+  }, [seuilTemp, seuilHumidite, seuilGaz]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "zones"), (snapshot) => {
@@ -190,6 +203,7 @@ export default function DashboardScreen() {
       : userRole === "manager"
         ? "#F57C00"
         : "#1565C0";
+
   const getRoleLabel = () => {
     if (lang === "ar")
       return userRole === "admin"
@@ -273,7 +287,6 @@ export default function DashboardScreen() {
     dispo: lang === "ar" ? "حر" : lang === "en" ? "Free" : "Libre",
   };
 
-  // ✅ La photo affichée = globalPhotoURL (mis à jour instantanément depuis profile)
   const displayPhoto = globalPhotoURL;
 
   return (
@@ -324,7 +337,6 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
-        {/* ✅ Avatar utilise globalPhotoURL directement */}
         <TouchableOpacity onPress={() => router.push("/profile")}>
           {displayPhoto ? (
             <Image source={{ uri: displayPhoto }} style={styles.avatarImg} />
@@ -505,9 +517,25 @@ export default function DashboardScreen() {
                 🌡️ {chambre.temperature}°C
               </Text>
               <Text
-                style={{ fontSize: 12, color: theme.accent, marginBottom: 8 }}
+                style={{ fontSize: 12, color: theme.accent, marginBottom: 2 }}
               >
                 💧 {chambre.humidite}%
+              </Text>
+              {/* ✅ AJOUT affichage gaz */}
+              <Text
+                style={{
+                  fontSize: 12,
+                  color:
+                    chambre.gaz > seuilGaz
+                      ? "#E53935"
+                      : chambre.gaz > 800
+                        ? "#F57C00"
+                        : theme.accent,
+                  marginBottom: 8,
+                  fontWeight: chambre.gaz > seuilGaz ? "bold" : "normal",
+                }}
+              >
+                🔥 {lang === "ar" ? "غاز:" : "Gaz:"} {chambre.gaz ?? 0}
               </Text>
               <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
                 <Text style={{ opacity: chambre.lumiere ? 1 : 0.3 }}>💡</Text>
@@ -531,6 +559,14 @@ export default function DashboardScreen() {
                   style={[styles.alertBadge, { backgroundColor: "#1565C0" }]}
                 >
                   <Text style={styles.alertBadgeText}>💧 Humide!</Text>
+                </View>
+              )}
+              {/* ✅ AJOUT badge gaz */}
+              {chambre.gaz > seuilGaz && (
+                <View
+                  style={[styles.alertBadge, { backgroundColor: "#B71C1C" }]}
+                >
+                  <Text style={styles.alertBadgeText}>🔥 Gaz!</Text>
                 </View>
               )}
             </TouchableOpacity>

@@ -1,7 +1,13 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { db } from "../config/firebase";
 import { useApp } from "../context/AppContext";
 
@@ -23,7 +29,11 @@ export default function ChambreDetailScreen() {
   }, [chambreId]);
 
   useEffect(() => {
-    const q = query(collection(db, "alertes"), where("chambre", "==", chambreId), where("resolu", "==", false));
+    const q = query(
+      collection(db, "alertes"),
+      where("chambre", "==", chambreId),
+      where("resolu", "==", false),
+    );
     const unsubscribe = onSnapshot(q, (snap) => {
       setAlertes(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
@@ -32,8 +42,10 @@ export default function ChambreDetailScreen() {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "historique"), (snap) => {
-      const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-        .filter((h) => h.message?.includes(chambreId) && h.type === "rfid").slice(0, 10);
+      const all = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((h) => h.message?.includes(chambreId) && h.type === "rfid")
+        .slice(0, 10);
       setHistorique(all);
     });
     return unsubscribe;
@@ -45,7 +57,8 @@ export default function ChambreDetailScreen() {
     occupe: lang === "ar" ? "مشغولة" : lang === "en" ? "Occupied" : "Occupee",
     libre: lang === "ar" ? "حرة" : lang === "en" ? "Free" : "Libre",
     etat: lang === "ar" ? "الحالة" : lang === "en" ? "Status" : "Etat",
-    capteurs: lang === "ar" ? "المجسات" : lang === "en" ? "Sensors" : "Capteurs",
+    capteurs:
+      lang === "ar" ? "المجسات" : lang === "en" ? "Sensors" : "Capteurs",
     acces: lang === "ar" ? "الوصول" : lang === "en" ? "Access" : "Acces",
     alertes: lang === "ar" ? "التنبيهات" : lang === "en" ? "Alerts" : "Alertes",
     lumiere: lang === "ar" ? "الضوء" : lang === "en" ? "Light" : "Lumiere",
@@ -57,56 +70,190 @@ export default function ChambreDetailScreen() {
     ouverte: lang === "ar" ? "مفتوح" : lang === "en" ? "Open" : "Ouverte",
     fermee: lang === "ar" ? "مغلق" : lang === "en" ? "Closed" : "Fermee",
     active: lang === "ar" ? "نشط" : lang === "en" ? "Active" : "Active",
-    etatChambre: lang === "ar" ? "حالة الغرفة" : lang === "en" ? "Room Status" : "Etat de la chambre",
-    presence: lang === "ar" ? "الحضور" : lang === "en" ? "Presence" : "Detection de presence",
-    chambreOccupee: lang === "ar" ? "الغرفة مشغولة" : lang === "en" ? "Room occupied" : "Chambre occupee",
-    chambreVide: lang === "ar" ? "الغرفة فارغة" : lang === "en" ? "Room empty" : "Chambre vide",
-    donneesTempsReel: lang === "ar" ? "البيانات الآنية" : lang === "en" ? "Real-time data" : "Donnees en temps reel",
-    alertesActives: lang === "ar" ? "التنبيهات النشطة" : lang === "en" ? "Active alerts" : "Alertes actives",
-    aucuneAlerte: lang === "ar" ? "لا توجد تنبيهات" : lang === "en" ? "No active alerts" : "Aucune alerte active",
-    aucunAcces: lang === "ar" ? "لا يوجد وصول" : lang === "en" ? "No access recorded" : "Aucun acces enregistre",
-    chargement: lang === "ar" ? "جاري التحميل..." : lang === "en" ? "Loading..." : "Chargement...",
+    etatChambre:
+      lang === "ar"
+        ? "حالة الغرفة"
+        : lang === "en"
+          ? "Room Status"
+          : "Etat de la chambre",
+    presence:
+      lang === "ar"
+        ? "الحضور"
+        : lang === "en"
+          ? "Presence"
+          : "Detection de presence",
+    chambreOccupee:
+      lang === "ar"
+        ? "الغرفة مشغولة"
+        : lang === "en"
+          ? "Room occupied"
+          : "Chambre occupee",
+    chambreVide:
+      lang === "ar"
+        ? "الغرفة فارغة"
+        : lang === "en"
+          ? "Room empty"
+          : "Chambre vide",
+    donneesTempsReel:
+      lang === "ar"
+        ? "البيانات الآنية"
+        : lang === "en"
+          ? "Real-time data"
+          : "Donnees en temps reel",
+    alertesActives:
+      lang === "ar"
+        ? "التنبيهات النشطة"
+        : lang === "en"
+          ? "Active alerts"
+          : "Alertes actives",
+    aucuneAlerte:
+      lang === "ar"
+        ? "لا توجد تنبيهات"
+        : lang === "en"
+          ? "No active alerts"
+          : "Aucune alerte active",
+    aucunAcces:
+      lang === "ar"
+        ? "لا يوجد وصول"
+        : lang === "en"
+          ? "No access recorded"
+          : "Aucun acces enregistre",
+    chargement:
+      lang === "ar"
+        ? "جاري التحميل..."
+        : lang === "en"
+          ? "Loading..."
+          : "Chargement...",
+    // ✅ AJOUT labels MQ-2
+    gaz:
+      lang === "ar"
+        ? "كاشف الغاز"
+        : lang === "en"
+          ? "Gas Sensor MQ-2"
+          : "Detecteur de gaz MQ-2",
+    gazNormal: lang === "ar" ? "طبيعي" : lang === "en" ? "Normal" : "Normal",
+    gazEleve:
+      lang === "ar"
+        ? "مستوى مرتفع"
+        : lang === "en"
+          ? "High level"
+          : "Niveau eleve",
+    gazDanger:
+      lang === "ar"
+        ? "خطر! غاز مكتشف"
+        : lang === "en"
+          ? "DANGER! Gas detected"
+          : "DANGER ! Gaz detecte",
   };
 
   if (!chambre) {
     return (
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={[styles.backBtnText, { color: theme.accent }]}>← {lbl.retour}</Text>
+          <Text style={[styles.backBtnText, { color: theme.accent }]}>
+            ← {lbl.retour}
+          </Text>
         </TouchableOpacity>
         <View style={styles.loadingBox}>
-          <Text style={{ color: theme.accent, fontSize: 16 }}>{lbl.chargement}</Text>
+          <Text style={{ color: theme.accent, fontSize: 16 }}>
+            {lbl.chargement}
+          </Text>
         </View>
       </View>
     );
   }
 
-  const tempColor = chambre.temperature > 30 ? "#E53935" : chambre.temperature > 27 ? "#F57C00" : "#2E7D32";
-  const humColor = chambre.humidite > 80 ? "#E53935" : chambre.humidite > 75 ? "#F57C00" : "#2E7D32";
+  const tempColor =
+    chambre.temperature > 30
+      ? "#E53935"
+      : chambre.temperature > 27
+        ? "#F57C00"
+        : "#2E7D32";
+  const humColor =
+    chambre.humidite > 80
+      ? "#E53935"
+      : chambre.humidite > 75
+        ? "#F57C00"
+        : "#2E7D32";
   const tempPct = Math.min((chambre.temperature / 40) * 100, 100);
   const humPct = Math.min(chambre.humidite, 100);
+  // ✅ AJOUT couleurs et pourcentage MQ-2
+  const gazColor =
+    chambre.gaz > 1500 ? "#E53935" : chambre.gaz > 800 ? "#F57C00" : "#2E7D32";
+  const gazPct = Math.min(((chambre.gaz ?? 0) / 4095) * 100, 100);
+  const gazLabel =
+    chambre.gaz > 1500
+      ? lbl.gazDanger
+      : chambre.gaz > 800
+        ? lbl.gazEleve
+        : lbl.gazNormal;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* HEADER */}
-      <View style={[styles.hero, { backgroundColor: theme.card, borderBottomColor: chambre.presence ? "#E53935" : "#2E7D32" }]}>
+      <View
+        style={[
+          styles.hero,
+          {
+            backgroundColor: theme.card,
+            borderBottomColor: chambre.presence ? "#E53935" : "#2E7D32",
+          },
+        ]}
+      >
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={[styles.backBtnText, { color: theme.accent }]}>← {lbl.retour}</Text>
+          <Text style={[styles.backBtnText, { color: theme.accent }]}>
+            ← {lbl.retour}
+          </Text>
         </TouchableOpacity>
         <View style={styles.heroTop}>
           <View>
-            <Text style={[styles.heroTitle, { color: theme.text }]}>{lbl.chambre} #{chambre.id}</Text>
-            <Text style={[styles.heroSub, { color: theme.textSub }]}>{chambre.presence ? "👤 " + lbl.occupe : "🔓 " + lbl.libre}</Text>
+            <Text style={[styles.heroTitle, { color: theme.text }]}>
+              {lbl.chambre} #{chambre.id}
+            </Text>
+            <Text style={[styles.heroSub, { color: theme.textSub }]}>
+              {chambre.presence ? "👤 " + lbl.occupe : "🔓 " + lbl.libre}
+            </Text>
           </View>
-          <View style={[styles.statusBig, { backgroundColor: chambre.presence ? "#E5393522" : "#2E7D3222" }]}>
-            <Text style={{ fontSize: 22 }}>{chambre.presence ? "🔴" : "🟢"}</Text>
+          <View
+            style={[
+              styles.statusBig,
+              { backgroundColor: chambre.presence ? "#E5393522" : "#2E7D3222" },
+            ]}
+          >
+            <Text style={{ fontSize: 22 }}>
+              {chambre.presence ? "🔴" : "🟢"}
+            </Text>
           </View>
         </View>
+        {/* ✅ AJOUT bannière gaz dans le header */}
+        {chambre.gaz > 1500 && (
+          <View
+            style={[
+              styles.alerteBanner,
+              { backgroundColor: "#B71C1C", marginBottom: 6 },
+            ]}
+          >
+            <Text style={styles.alerteBannerText}>
+              🔥 {lbl.gazDanger} — {lbl.gaz}: {chambre.gaz}
+            </Text>
+          </View>
+        )}
         {alertes.length > 0 && (
           <View style={styles.alertesBannerRow}>
             {alertes.map((a) => (
-              <View key={a.id} style={[styles.alerteBanner, { backgroundColor: a.niveau === "urgent" ? "#E53935" : "#F57C00" }]}>
-                <Text style={styles.alerteBannerText}>{a.icone} {a.message?.split("chambre")[0]}</Text>
+              <View
+                key={a.id}
+                style={[
+                  styles.alerteBanner,
+                  {
+                    backgroundColor:
+                      a.niveau === "urgent" ? "#E53935" : "#F57C00",
+                  },
+                ]}
+              >
+                <Text style={styles.alerteBannerText}>
+                  {a.icone} {a.message?.split("chambre")[0]}
+                </Text>
               </View>
             ))}
           </View>
@@ -114,104 +261,366 @@ export default function ChambreDetailScreen() {
       </View>
 
       {/* TABS */}
-      <View style={[styles.tabBar, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        {["etat","capteurs","acces","alertes"].map((tab) => (
-          <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && { borderBottomColor: "#64B5F6", borderBottomWidth: 2 }]} onPress={() => setActiveTab(tab)}>
-            <Text style={[styles.tabText, { color: activeTab === tab ? "#64B5F6" : theme.textSub }]}>
-              {tab === "etat" ? lbl.etat : tab === "capteurs" ? lbl.capteurs : tab === "acces" ? lbl.acces : lbl.alertes}
+      <View
+        style={[
+          styles.tabBar,
+          { backgroundColor: theme.card, borderBottomColor: theme.border },
+        ]}
+      >
+        {["etat", "capteurs", "acces", "alertes"].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[
+              styles.tab,
+              activeTab === tab && {
+                borderBottomColor: "#64B5F6",
+                borderBottomWidth: 2,
+              },
+            ]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                { color: activeTab === tab ? "#64B5F6" : theme.textSub },
+              ]}
+            >
+              {tab === "etat"
+                ? lbl.etat
+                : tab === "capteurs"
+                  ? lbl.capteurs
+                  : tab === "acces"
+                    ? lbl.acces
+                    : lbl.alertes}
             </Text>
             {tab === "alertes" && alertes.length > 0 && (
-              <View style={styles.tabBadge}><Text style={styles.tabBadgeText}>{alertes.length}</Text></View>
+              <View style={styles.tabBadge}>
+                <Text style={styles.tabBadgeText}>{alertes.length}</Text>
+              </View>
             )}
           </TouchableOpacity>
         ))}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ETAT */}
+        {/* ===== ONGLET ETAT ===== */}
         {activeTab === "etat" && (
           <View>
-            <Text style={[styles.sectionLabel, { color: theme.accent }]}>{lbl.etatChambre}</Text>
+            <Text style={[styles.sectionLabel, { color: theme.accent }]}>
+              {lbl.etatChambre}
+            </Text>
             <View style={styles.equipGrid}>
               {[
-                { icon: "💡", label: lbl.lumiere, status: chambre.lumiere ? lbl.allume : lbl.eteint, color: chambre.lumiere ? "#FFD54F" : theme.textSub, active: chambre.lumiere },
-                { icon: "❄️", label: lbl.clim, status: chambre.clim ? lbl.active : lbl.eteint, color: chambre.clim ? "#64B5F6" : theme.textSub, active: chambre.clim },
-                { icon: "🪟", label: lbl.fenetre, status: chambre.fenetre ? lbl.ouverte : lbl.fermee, color: chambre.fenetre ? "#F57C00" : theme.textSub, active: chambre.fenetre },
-                { icon: "🚪", label: lbl.porte, status: chambre.porteOuverte ? lbl.ouverte : lbl.fermee, color: chambre.porteOuverte ? "#2E7D32" : theme.textSub, active: chambre.porteOuverte },
+                {
+                  icon: "💡",
+                  label: lbl.lumiere,
+                  status: chambre.lumiere ? lbl.allume : lbl.eteint,
+                  color: chambre.lumiere ? "#FFD54F" : theme.textSub,
+                  active: chambre.lumiere,
+                },
+                {
+                  icon: "❄️",
+                  label: lbl.clim,
+                  status: chambre.clim ? lbl.active : lbl.eteint,
+                  color: chambre.clim ? "#64B5F6" : theme.textSub,
+                  active: chambre.clim,
+                },
+                {
+                  icon: "🪟",
+                  label: lbl.fenetre,
+                  status: chambre.fenetre ? lbl.ouverte : lbl.fermee,
+                  color: chambre.fenetre ? "#F57C00" : theme.textSub,
+                  active: chambre.fenetre,
+                },
+                {
+                  icon: "🚪",
+                  label: lbl.porte,
+                  status: chambre.porteOuverte ? lbl.ouverte : lbl.fermee,
+                  color: chambre.porteOuverte ? "#2E7D32" : theme.textSub,
+                  active: chambre.porteOuverte,
+                },
               ].map((item, i) => (
-                <View key={i} style={[styles.equipCard, { backgroundColor: theme.card, borderColor: item.active ? item.color : theme.border }]}>
+                <View
+                  key={i}
+                  style={[
+                    styles.equipCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: item.active ? item.color : theme.border,
+                    },
+                  ]}
+                >
                   <Text style={styles.equipIcon}>{item.icon}</Text>
-                  <Text style={[styles.equipLabel, { color: theme.textSub }]}>{item.label}</Text>
-                  <Text style={[styles.equipStatus, { color: item.color }]}>{item.status}</Text>
+                  <Text style={[styles.equipLabel, { color: theme.textSub }]}>
+                    {item.label}
+                  </Text>
+                  <Text style={[styles.equipStatus, { color: item.color }]}>
+                    {item.status}
+                  </Text>
                 </View>
               ))}
             </View>
-            <Text style={[styles.sectionLabel, { color: theme.accent }]}>{lbl.presence}</Text>
-            <View style={[styles.presenceCard, { backgroundColor: theme.card }]}>
-              <Text style={styles.presenceIcon}>{chambre.presence ? "👤" : "🚶"}</Text>
+
+            <Text style={[styles.sectionLabel, { color: theme.accent }]}>
+              {lbl.presence}
+            </Text>
+            <View
+              style={[styles.presenceCard, { backgroundColor: theme.card }]}
+            >
+              <Text style={styles.presenceIcon}>
+                {chambre.presence ? "👤" : "🚶"}
+              </Text>
               <View style={styles.presenceInfo}>
-                <Text style={[styles.presenceTitle, { color: theme.text }]}>{chambre.presence ? lbl.chambreOccupee : lbl.chambreVide}</Text>
+                <Text style={[styles.presenceTitle, { color: theme.text }]}>
+                  {chambre.presence ? lbl.chambreOccupee : lbl.chambreVide}
+                </Text>
               </View>
-              <View style={[styles.presenceDot, { backgroundColor: chambre.presence ? "#E53935" : "#2E7D32" }]} />
+              <View
+                style={[
+                  styles.presenceDot,
+                  { backgroundColor: chambre.presence ? "#E53935" : "#2E7D32" },
+                ]}
+              />
             </View>
+
             {chambre.fenetre && chambre.clim && (
-              <View style={[styles.warningBox, { backgroundColor: "#F57C0022", borderColor: "#F57C00" }]}>
-                <Text style={{ color: "#F57C00", fontSize: 13, lineHeight: 20 }}>⚠️ Fenetre ouverte avec climatisation active</Text>
+              <View
+                style={[
+                  styles.warningBox,
+                  { backgroundColor: "#F57C0022", borderColor: "#F57C00" },
+                ]}
+              >
+                <Text
+                  style={{ color: "#F57C00", fontSize: 13, lineHeight: 20 }}
+                >
+                  ⚠️ Fenetre ouverte avec climatisation active
+                </Text>
+              </View>
+            )}
+
+            {/* ✅ AJOUT alerte gaz dans onglet etat */}
+            {chambre.gaz > 1500 && (
+              <View
+                style={[
+                  styles.warningBox,
+                  { backgroundColor: "#B71C1C22", borderColor: "#B71C1C" },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: "#B71C1C",
+                    fontSize: 13,
+                    lineHeight: 20,
+                    fontWeight: "bold",
+                  }}
+                >
+                  🔥 {lbl.gazDanger} — Valeur: {chambre.gaz} / 4095
+                </Text>
               </View>
             )}
           </View>
         )}
 
-        {/* CAPTEURS */}
+        {/* ===== ONGLET CAPTEURS ===== */}
         {activeTab === "capteurs" && (
           <View>
-            <Text style={[styles.sectionLabel, { color: theme.accent }]}>{lbl.donneesTempsReel}</Text>
-            {[
-              { icon: "🌡️", label: lang === "ar" ? "درجة الحرارة" : "Temperature", value: chambre.temperature?.toFixed(1) + "°C", color: tempColor, pct: tempPct, scale: ["0°C", "18-24°C", "40°C"] },
-              { icon: "💧", label: lang === "ar" ? "الرطوبة" : "Humidite", value: chambre.humidite?.toFixed(1) + "%", color: humColor, pct: humPct, scale: ["0%", "40-60%", "100%"] },
-            ].map((sensor, i) => (
-              <View key={i} style={[styles.sensorCard, { backgroundColor: theme.card }]}>
-                <View style={styles.sensorHeader}>
-                  <Text style={styles.sensorIcon}>{sensor.icon}</Text>
-                  <View>
-                    <Text style={[styles.sensorLabel, { color: theme.textSub }]}>{sensor.label}</Text>
-                    <Text style={[styles.sensorValue, { color: sensor.color }]}>{sensor.value}</Text>
-                  </View>
-                </View>
-                <View style={[styles.progressBar, { backgroundColor: theme.bg3 }]}>
-                  <View style={[styles.progressFill, { width: `${sensor.pct}%`, backgroundColor: sensor.color }]} />
-                </View>
-                <View style={styles.sensorScale}>
-                  {sensor.scale.map((s, j) => <Text key={j} style={[styles.sensorScaleText, { color: theme.textSub }]}>{s}</Text>)}
+            <Text style={[styles.sectionLabel, { color: theme.accent }]}>
+              {lbl.donneesTempsReel}
+            </Text>
+
+            {/* Température */}
+            <View style={[styles.sensorCard, { backgroundColor: theme.card }]}>
+              <View style={styles.sensorHeader}>
+                <Text style={styles.sensorIcon}>🌡️</Text>
+                <View>
+                  <Text style={[styles.sensorLabel, { color: theme.textSub }]}>
+                    {lang === "ar" ? "درجة الحرارة" : "Temperature"}
+                  </Text>
+                  <Text style={[styles.sensorValue, { color: tempColor }]}>
+                    {chambre.temperature?.toFixed(1)}°C
+                  </Text>
                 </View>
               </View>
-            ))}
+              <View
+                style={[styles.progressBar, { backgroundColor: theme.bg3 }]}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${tempPct}%`, backgroundColor: tempColor },
+                  ]}
+                />
+              </View>
+              <View style={styles.sensorScale}>
+                {["0°C", "18-24°C", "40°C"].map((s, j) => (
+                  <Text
+                    key={j}
+                    style={[styles.sensorScaleText, { color: theme.textSub }]}
+                  >
+                    {s}
+                  </Text>
+                ))}
+              </View>
+            </View>
+
+            {/* Humidité */}
+            <View style={[styles.sensorCard, { backgroundColor: theme.card }]}>
+              <View style={styles.sensorHeader}>
+                <Text style={styles.sensorIcon}>💧</Text>
+                <View>
+                  <Text style={[styles.sensorLabel, { color: theme.textSub }]}>
+                    {lang === "ar" ? "الرطوبة" : "Humidite"}
+                  </Text>
+                  <Text style={[styles.sensorValue, { color: humColor }]}>
+                    {chambre.humidite?.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[styles.progressBar, { backgroundColor: theme.bg3 }]}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${humPct}%`, backgroundColor: humColor },
+                  ]}
+                />
+              </View>
+              <View style={styles.sensorScale}>
+                {["0%", "40-60%", "100%"].map((s, j) => (
+                  <Text
+                    key={j}
+                    style={[styles.sensorScaleText, { color: theme.textSub }]}
+                  >
+                    {s}
+                  </Text>
+                ))}
+              </View>
+            </View>
+
+            {/* ✅ AJOUT CARTE MQ-2 */}
+            <View
+              style={[
+                styles.sensorCard,
+                {
+                  backgroundColor: theme.card,
+                  borderWidth: chambre.gaz > 1500 ? 1.5 : 0,
+                  borderColor: gazColor,
+                },
+              ]}
+            >
+              <View style={styles.sensorHeader}>
+                <Text style={styles.sensorIcon}>🔥</Text>
+                <View>
+                  <Text style={[styles.sensorLabel, { color: theme.textSub }]}>
+                    {lbl.gaz}
+                  </Text>
+                  <Text style={[styles.sensorValue, { color: gazColor }]}>
+                    {chambre.gaz ?? 0}
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[styles.progressBar, { backgroundColor: theme.bg3 }]}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${gazPct}%`, backgroundColor: gazColor },
+                  ]}
+                />
+              </View>
+              <View style={styles.sensorScale}>
+                {["0", "Normal < 800", "4095"].map((s, j) => (
+                  <Text
+                    key={j}
+                    style={[styles.sensorScaleText, { color: theme.textSub }]}
+                  >
+                    {s}
+                  </Text>
+                ))}
+              </View>
+              {/* Badge état gaz */}
+              <View
+                style={[
+                  styles.gazBadge,
+                  { backgroundColor: gazColor + "22", borderColor: gazColor },
+                ]}
+              >
+                <Text
+                  style={{ color: gazColor, fontWeight: "bold", fontSize: 13 }}
+                >
+                  {chambre.gaz > 1500
+                    ? "⚠️ "
+                    : chambre.gaz > 800
+                      ? "⚠️ "
+                      : "✅ "}
+                  {gazLabel}
+                </Text>
+              </View>
+            </View>
+
+            {/* Résumé capteurs */}
             <View style={styles.resumeGrid}>
-              {["Capteur PIR","Capteur DHT22","Module RFID","ESP32"].map((item, i) => (
-                <View key={i} style={[styles.resumeCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                  <Text style={[styles.resumeLabel, { color: theme.textSub }]}>{item}</Text>
-                  <Text style={[styles.resumeVal, { color: "#2E7D32" }]}>Actif</Text>
+              {[
+                "Capteur PIR",
+                "Capteur DHT22",
+                "Module RFID",
+                "ESP32",
+                "Capteur MQ-2",
+              ].map((item, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.resumeCard,
+                    { backgroundColor: theme.card, borderColor: theme.border },
+                  ]}
+                >
+                  <Text style={[styles.resumeLabel, { color: theme.textSub }]}>
+                    {item}
+                  </Text>
+                  <Text style={[styles.resumeVal, { color: "#2E7D32" }]}>
+                    Actif
+                  </Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* ACCES */}
+        {/* ===== ONGLET ACCES ===== */}
         {activeTab === "acces" && (
           <View>
-            <Text style={[styles.sectionLabel, { color: theme.accent }]}>RFID</Text>
+            <Text style={[styles.sectionLabel, { color: theme.accent }]}>
+              RFID
+            </Text>
             {historique.length === 0 ? (
               <View style={[styles.emptyBox, { backgroundColor: theme.card }]}>
-                <Text style={[styles.emptyText, { color: theme.textSub }]}>{lbl.aucunAcces}</Text>
+                <Text style={[styles.emptyText, { color: theme.textSub }]}>
+                  {lbl.aucunAcces}
+                </Text>
               </View>
             ) : (
               historique.map((h) => (
-                <View key={h.id} style={[styles.rfidItem, { backgroundColor: theme.card, borderLeftColor: h.autorise === false ? "#E53935" : "#2E7D32" }]}>
+                <View
+                  key={h.id}
+                  style={[
+                    styles.rfidItem,
+                    {
+                      backgroundColor: theme.card,
+                      borderLeftColor:
+                        h.autorise === false ? "#E53935" : "#2E7D32",
+                    },
+                  ]}
+                >
                   <Text style={styles.rfidIcon}>{h.icone || "🔑"}</Text>
                   <View style={styles.rfidInfo}>
-                    <Text style={[styles.rfidMsg, { color: theme.text }]}>{h.message}</Text>
-                    <Text style={[styles.rfidMeta, { color: theme.textSub }]}>{h.heure} · {h.date}</Text>
+                    <Text style={[styles.rfidMsg, { color: theme.text }]}>
+                      {h.message}
+                    </Text>
+                    <Text style={[styles.rfidMeta, { color: theme.textSub }]}>
+                      {h.heure} · {h.date}
+                    </Text>
                   </View>
                 </View>
               ))
@@ -219,27 +628,46 @@ export default function ChambreDetailScreen() {
           </View>
         )}
 
-        {/* ALERTES */}
+        {/* ===== ONGLET ALERTES ===== */}
         {activeTab === "alertes" && (
           <View>
-            <Text style={[styles.sectionLabel, { color: theme.accent }]}>{lbl.alertesActives}</Text>
+            <Text style={[styles.sectionLabel, { color: theme.accent }]}>
+              {lbl.alertesActives}
+            </Text>
             {alertes.length === 0 ? (
               <View style={[styles.emptyBox, { backgroundColor: theme.card }]}>
-                <Text style={[styles.emptyText, { color: theme.textSub }]}>{lbl.aucuneAlerte}</Text>
+                <Text style={[styles.emptyText, { color: theme.textSub }]}>
+                  {lbl.aucuneAlerte}
+                </Text>
               </View>
             ) : (
               alertes.map((a) => (
-                <View key={a.id} style={[styles.alerteCard, { backgroundColor: theme.card, borderLeftColor: a.niveau === "urgent" ? "#E53935" : "#F57C00" }]}>
+                <View
+                  key={a.id}
+                  style={[
+                    styles.alerteCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderLeftColor:
+                        a.niveau === "urgent" ? "#E53935" : "#F57C00",
+                    },
+                  ]}
+                >
                   <Text style={styles.alerteIcon}>{a.icone}</Text>
                   <View style={styles.alerteInfo}>
-                    <Text style={[styles.alerteMsg, { color: theme.text }]}>{a.message}</Text>
-                    <Text style={[styles.alerteMeta, { color: theme.textSub }]}>{a.heure} · {a.date}</Text>
+                    <Text style={[styles.alerteMsg, { color: theme.text }]}>
+                      {a.message}
+                    </Text>
+                    <Text style={[styles.alerteMeta, { color: theme.textSub }]}>
+                      {a.heure} · {a.date}
+                    </Text>
                   </View>
                 </View>
               ))
             )}
           </View>
         )}
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -252,50 +680,136 @@ const styles = StyleSheet.create({
   backBtnText: { fontSize: 16 },
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
   hero: { padding: 20, paddingTop: 60, borderBottomWidth: 2 },
-  heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
+  heroTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   heroTitle: { fontSize: 26, fontWeight: "bold" },
   heroSub: { fontSize: 13, marginTop: 4 },
-  statusBig: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+  statusBig: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   alertesBannerRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   alerteBanner: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   alerteBannerText: { color: "#fff", fontSize: 11, fontWeight: "bold" },
   tabBar: { flexDirection: "row", borderBottomWidth: 1 },
-  tab: { flex: 1, paddingVertical: 14, alignItems: "center", position: "relative" },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    position: "relative",
+  },
   tabText: { fontSize: 11 },
-  tabBadge: { position: "absolute", top: 8, right: 8, backgroundColor: "#E53935", borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 },
+  tabBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#E53935",
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
   tabBadgeText: { color: "#fff", fontSize: 9, fontWeight: "bold" },
   content: { flex: 1, padding: 16 },
-  sectionLabel: { fontSize: 15, fontWeight: "bold", marginBottom: 12, marginTop: 8 },
-  equipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
-  equipCard: { width: "47%", borderRadius: 14, padding: 16, alignItems: "center", borderWidth: 1 },
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: "bold",
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  equipGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 20,
+  },
+  equipCard: {
+    width: "47%",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+  },
   equipIcon: { fontSize: 32, marginBottom: 8 },
   equipLabel: { fontSize: 12, marginBottom: 4 },
   equipStatus: { fontSize: 13, fontWeight: "bold" },
-  presenceCard: { flexDirection: "row", alignItems: "center", borderRadius: 14, padding: 16, marginBottom: 12, gap: 12 },
+  presenceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    gap: 12,
+  },
   presenceIcon: { fontSize: 36 },
   presenceInfo: { flex: 1 },
   presenceTitle: { fontSize: 15, fontWeight: "bold" },
   presenceDot: { width: 12, height: 12, borderRadius: 6 },
-  warningBox: { borderRadius: 12, padding: 14, borderWidth: 1, marginBottom: 12 },
+  warningBox: {
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
   sensorCard: { borderRadius: 14, padding: 16, marginBottom: 14 },
-  sensorHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  sensorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
   sensorIcon: { fontSize: 32 },
   sensorLabel: { fontSize: 12, marginBottom: 2 },
   sensorValue: { fontSize: 28, fontWeight: "bold" },
-  progressBar: { height: 10, borderRadius: 5, overflow: "hidden", marginBottom: 6 },
+  progressBar: {
+    height: 10,
+    borderRadius: 5,
+    overflow: "hidden",
+    marginBottom: 6,
+  },
   progressFill: { height: "100%", borderRadius: 5 },
   sensorScale: { flexDirection: "row", justifyContent: "space-between" },
   sensorScaleText: { fontSize: 10 },
+  // ✅ AJOUT style gazBadge
+  gazBadge: {
+    marginTop: 10,
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    alignItems: "center",
+  },
   resumeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 },
   resumeCard: { width: "47%", borderRadius: 12, padding: 14, borderWidth: 1 },
   resumeLabel: { fontSize: 11, marginBottom: 4 },
   resumeVal: { fontSize: 13, fontWeight: "bold" },
-  rfidItem: { flexDirection: "row", alignItems: "center", borderRadius: 12, padding: 14, marginBottom: 10, borderLeftWidth: 3, gap: 10 },
+  rfidItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    gap: 10,
+  },
   rfidIcon: { fontSize: 24 },
   rfidInfo: { flex: 1 },
   rfidMsg: { fontSize: 12, marginBottom: 3 },
   rfidMeta: { fontSize: 11 },
-  alerteCard: { flexDirection: "row", alignItems: "flex-start", borderRadius: 12, padding: 14, marginBottom: 10, borderLeftWidth: 3, gap: 10 },
+  alerteCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    gap: 10,
+  },
   alerteIcon: { fontSize: 24 },
   alerteInfo: { flex: 1 },
   alerteMsg: { fontSize: 13, marginBottom: 4 },

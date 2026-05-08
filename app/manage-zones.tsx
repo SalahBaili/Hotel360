@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { collection, doc, onSnapshot, setDoc } from "firebase/firestore";
@@ -72,11 +73,15 @@ const HAS_CALENDRIER = ["gym", "piscine", "spa", "salle-reunion"];
 const HAS_MENU = ["restaurant"];
 
 const uploadToImgur = async (uri: string): Promise<string> => {
+  // Copier en cache pour résoudre ph:// iOS
+  const cacheUri =
+    FileSystem.cacheDirectory + "zone_upload_" + Date.now() + ".jpg";
+  await FileSystem.copyAsync({ from: uri, to: cacheUri });
   const formData = new FormData();
   formData.append("image", {
-    uri,
+    uri: cacheUri,
     type: "image/jpeg",
-    name: "photo.jpg",
+    name: "zone_upload.jpg",
   } as any);
   const response = await fetch("https://api.imgur.com/3/image", {
     method: "POST",
@@ -85,7 +90,7 @@ const uploadToImgur = async (uri: string): Promise<string> => {
   });
   const data = await response.json();
   if (data.success) return data.data.link;
-  throw new Error("Upload echoue");
+  throw new Error("Upload echoue: " + JSON.stringify(data));
 };
 
 const getNomKey = (nom) => {
